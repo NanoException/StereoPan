@@ -247,13 +247,13 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
-        float Theta_w = M_PI/2 * Width - M_PI/4;
-        float Theta_r = M_PI/2 * Rotation - M_PI/4;
+        float Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
+        float Theta_r = M_PI/4 * UserParams[Rotation] - M_PI / 8;
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
-            auto midInput = (leftChannel[i] + rightChannel[i]) / sqrt(2);
-            auto sideInput = (leftChannel[i] - rightChannel[i]) / sqrt(2);
+            auto midInput = (leftChannel[i] + rightChannel[i]);
+            auto sideInput = (leftChannel[i] - rightChannel[i]);
 
             auto midWidth = midInput * sin(M_PI/4 - Theta_w) * sqrt(2);
             auto sideWidth = sideInput * cos(M_PI/4 - Theta_w) * sqrt(2);
@@ -261,15 +261,18 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
 
-            leftChannel[i] = (midRotation + sideRotation)/sqrt(2);
-            rightChannel[i] = (midRotation - sideRotation)/sqrt(2);
+            leftChannel[i] = (midRotation + sideRotation);
+            rightChannel[i] = (midRotation - sideRotation);
         }
 
         float  _samplerate = getSampleRate();
         UserParams[SampleRate] = _samplerate;
 
         float _frequency = 20.0f * pow(1000.0f, UserParams[LPFLink]);
-        //float _Q = 0.7f;
+        float _Q = 0.7f;
+
+        iirfilter[channel].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
+        iirfilter[channel].processSamples(buffer.getWritePointer(channel), buffer.getNumSamples());
 
         //LPF.SetParameter(_samplerate, _frequency, _Q);
         
