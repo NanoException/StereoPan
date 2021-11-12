@@ -248,7 +248,7 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             return;
 
         float Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
-        float Theta_r = M_PI/4 * UserParams[Rotation] - M_PI / 8;
+        float Theta_r = M_PI/2 * UserParams[Rotation] - M_PI / 4;
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
@@ -268,17 +268,20 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         float  _samplerate = getSampleRate();
         UserParams[SampleRate] = _samplerate;
 
-        float _frequency = 20.0f * pow(1000.0f, UserParams[LPFLink]);
-        float _Q = 0.7f;
+        float frequencyLink = 1.0f * pow(22000.0f, UserParams[LPFLink]);
+        //float frequencyLink = (22000.0-220.0)*UserParams[LPFLink] + 220.0f;
+        float LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
+        float _frequency = LPFBias*(frequencyLink - 22000.0f)+22000.0f;
+        //float _Q = 0.7f;
 
-        /*
+        
         iirfilter[channel].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
         iirfilter[channel].processSamples(buffer.getWritePointer(channel), buffer.getNumSamples());
-        */
+        
 
         //LPF.SetParameter(_samplerate, _frequency, _Q);
         
-        
+        /*
         if ((Theta_r > 0) && (channel == 1) )
         {
             //LPF.DoProcess(float rightChannel, int buffer.getNumSamples());
@@ -291,9 +294,9 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             iirfilter[0].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
             iirfilter[0].processSamples(buffer.getWritePointer(0), buffer.getNumSamples());
         }
-        
+        */
 
-        buffer.applyGain( pow(UserParams[Gain], 2));
+        buffer.applyGain( pow(UserParams[Gain], 2) );
     }
 }
 
