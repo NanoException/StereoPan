@@ -56,8 +56,8 @@ public:
     enum Parameters {
         MasterBypass = 0,
         Gain,
-        Theta_w,
-        Theta_r,
+        Width,
+        Rotation,
         LPFLink,
         PanLaw,
         totalNumParam

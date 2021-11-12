@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <corecrt_math_defines.h>
 
 //==============================================================================
 StereoPanAudioProcessor::StereoPanAudioProcessor()
@@ -24,8 +25,8 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
 {
     UserParams[MasterBypass] = 0.0f;
     UserParams[Gain] = 0.7f;
-    UserParams[Theta_w] = 0.5f;
-    UserParams[Theta_r] = 0.5f;
+    UserParams[Width] = 0.5f;
+    UserParams[Rotation] = 0.5f;
     UserParams[LPFLink] = 0.0f;
     UserParams[PanLaw] = 0.0f;
 }
@@ -57,11 +58,11 @@ void StereoPanAudioProcessor::setParameter(int index, float value)
     case Gain:
         UserParams[Gain] = value;
         break;
-    case Theta_w:
-        UserParams[Theta_w] = value;
+    case Width:
+        UserParams[Width] = value;
         break;
-    case Theta_r:
-        UserParams[Theta_r] = value;
+    case Rotation:
+        UserParams[Rotation] = value;
         break;
     case LPFLink:
         UserParams[LPFLink] = value;
@@ -82,9 +83,9 @@ const juce::String StereoPanAudioProcessor::getParameterName(int index)
         return "Master Bypass";
     case Gain:
         return "Gain";
-    case Theta_w:
+    case Width:
         return "Width";
-    case Theta_r:
+    case Rotation:
         return "Rotation";
     case LPFLink:
         return "LPF Link";
@@ -103,10 +104,10 @@ const juce::String StereoPanAudioProcessor::getParameterText(int index)
         return UserParams[MasterBypass] == 1.0f ? "BYPASS" : "EFFECT";
     case Gain:
         return juce::String(juce::Decibels::gainToDecibels( pow(UserParams[Gain], 2)*2.0f ), 1)+"dB";
-    case Theta_w:
-        return juce::String(UserParams[Theta_w]*200.0f)+"%";
-    case Theta_r:
-        return juce::String(UserParams[Theta_r]*200.0f-100.0f);
+    case Width:
+        return juce::String(UserParams[Width]*200.0f)+"%";
+    case Rotation:
+        return juce::String(UserParams[Rotation]*200.0f-100.0f);
     case LPFLink:
         return juce::String(UserParams[LPFLink]*100.0f);
     case PanLaw:
@@ -248,17 +249,35 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // interleaved by keeping the same state.
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        auto* channelData = buffer.getWritePointer (channel);
+        //auto* channelData = buffer.getWritePointer (channel);
+
+        
+
+        auto* leftChannel = buffer.getWritePointer(0);
+        auto* rightChannel = buffer.getWritePointer(1);
+
+        //auto* leftOutput = leftChannel;
+        //auto* rightOutput = rightChannel;
 
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
-        auto* leftInput = buffer.getWritePointer(0);
-        auto* rightInput = buffer.getWritePointer(1);
+        float Theta_w = M_PI/2 * Width - M_PI/4;
+        float Theta_r = M_PI/2 * Rotation - M_PI/4;
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
+            auto midInput = (leftChannel[i] + rightChannel[i])/2;
+            auto sideInput = leftChannel[i] - rightChannel[i];
 
+            auto midWidth = midInput * sin(M_PI/4 - Theta_w);
+            auto sideWidth = sideInput * cos(M_PI - Theta_w);
+
+            auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
+            auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
+
+            leftChannel[i] = midRotation + sideRotation;
+            rightChannel[i] = midRotation - sideRotation;
         }
     }
 }
