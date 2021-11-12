@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "cmath"
 #include <corecrt_math_defines.h>
 
 //==============================================================================
