@@ -271,25 +271,27 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         float _frequency = 20.0f * pow(1000.0f, UserParams[LPFLink]);
         float _Q = 0.7f;
 
+        /*
         iirfilter[channel].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
         iirfilter[channel].processSamples(buffer.getWritePointer(channel), buffer.getNumSamples());
+        */
 
         //LPF.SetParameter(_samplerate, _frequency, _Q);
         
-        /*
-        if (Theta_r > 0)
+        
+        if ((Theta_r > 0) && (channel == 1) )
         {
             //LPF.DoProcess(float rightChannel, int buffer.getNumSamples());
             iirfilter[1].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate,_frequency));
             iirfilter[1].processSamples(buffer.getWritePointer(1), buffer.getNumSamples());
         }
-        else if (Theta_r < 0)
+        else if ((Theta_r < 0) && (channel == 0))
         {
             //LPF.DoProcess(float leftChannel, int buffer.getNumSamples());
             iirfilter[0].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
             iirfilter[0].processSamples(buffer.getWritePointer(0), buffer.getNumSamples());
         }
-        */
+        
 
         buffer.applyGain( pow(UserParams[Gain], 2));
     }
