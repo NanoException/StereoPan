@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="dM9kfK" name="StereoPan" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              companyName="liquidAudioLab">
-  <MAINGROUP id="iET5gc" name="StereoPan">
-    <GROUP id="{8FAF6DD1-F948-1E83-7FF5-EEFFB9CA4DBB}" name="LPF">
-      <FILE id="BC52Ki" name="LPF.cpp" compile="1" resource="0" file="Source/LPF/LPF.cpp"/>
-      <FILE id="WPH9Zw" name="LPF.h" compile="0" resource="0" file="Source/LPF/LPF.h"/>
-    </GROUP>
-    <GROUP id="{067B7F6D-8F31-FEEC-75E6-D386F602409F}" name="Source">
-      <FILE id="BARrTL" name="PluginProcessor.cpp" compile="1" resource="0"
+<JUCERPROJECT id="yRiEjs" name="StereoPan" projectType="audioplug" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1">
+  <MAINGROUP id="UEiWTs" name="StereoPan">
+    <GROUP id="{14DC1D26-D166-5F61-29EA-FE38C434365C}" name="Source">
+      <GROUP id="{3AE31444-2331-2D7C-DCC9-8B051374186D}" name="LPF">
+        <FILE id="zSn0BO" name="LPF.cpp" compile="1" resource="0" file="Source/LPF/LPF.cpp"/>
+        <FILE id="amMXDf" name="LPF.h" compile="0" resource="0" file="Source/LPF/LPF.h"/>
+      </GROUP>
+      <FILE id="HRVPz4" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
-      <FILE id="YyIxJi" name="PluginProcessor.h" compile="0" resource="0"
+      <FILE id="gduB5x" name="PluginProcessor.h" compile="0" resource="0"
             file="Source/PluginProcessor.h"/>
-      <FILE id="P27jtR" name="PluginEditor.cpp" compile="1" resource="0"
+      <FILE id="rekuAU" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
-      <FILE id="cFlRMZ" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="iPd1mi" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
     </GROUP>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
@@ -26,21 +25,21 @@
         <CONFIGURATION isDebug="0" name="Release" targetName="StereoPan"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../../modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../modules"/>
-        <MODULEPATH id="juce_core" path="../../modules"/>
-        <MODULEPATH id="juce_cryptography" path="../../modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../modules"/>
-        <MODULEPATH id="juce_events" path="../../modules"/>
-        <MODULEPATH id="juce_graphics" path="../../modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../modules"/>
-        <MODULEPATH id="juce_opengl" path="../../modules"/>
-        <MODULEPATH id="juce_video" path="../../modules"/>
+        <MODULEPATH id="juce_audio_basics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_video" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </VS2019>
   </EXPORTFORMATS>
@@ -53,8 +52,8 @@
     <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
-    <MODULE id="juce_cryptography" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
