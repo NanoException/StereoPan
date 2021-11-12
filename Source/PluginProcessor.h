@@ -9,6 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "LPF/LPF.h"
 
 //==============================================================================
 /**
@@ -60,6 +61,7 @@ public:
         Rotation,
         LPFLink,
         PanLaw,
+        SampleRate,
         totalNumParam
     };
     int getNumParameters() override;

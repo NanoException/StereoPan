@@ -21,7 +21,7 @@ LPF::LPF():
 
 LPF::~LPF() {}
 
-void LPF::SetParameter(float sampletate, float frequency, float Q, float gain)
+void LPF::SetParameter(float sampletate, float frequency, float Q)
 {
     float omega0 = 2.0f*M_PI*frequency/sampletate;
     float sinw = sin(omega0);

@@ -14,13 +14,13 @@ class LPF {
 public:
     LPF();
     ~LPF();
-    void SetParameter(float samplerate, float frequency, float Q, float gain);
-    void DoProcess(float* bufferPtr, int bufferSize);
+    static void SetParameter(float samplerate, float frequency, float Q);
+    static void DoProcess(float* bufferPtr, int bufferSize);
 
 
 private:
-    float a0, a1, a2, b0, b1, b2;
-    float in1, in2;
-    float out1, out2;
+    static float a0, a1, a2, b0, b1, b2;
+    static float in1, in2;
+    static float out1, out2;
 
 };

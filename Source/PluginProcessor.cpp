@@ -9,7 +9,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "cmath"
-#include <corecrt_math_defines.h>
+#include "corecrt_math_defines.h"
 
 //==============================================================================
 StereoPanAudioProcessor::StereoPanAudioProcessor()
@@ -51,29 +51,9 @@ float StereoPanAudioProcessor::getParameter(int index)
 
 void StereoPanAudioProcessor::setParameter(int index, float value)
 {
-    switch (index)
-    {
-    case MasterBypass:
-        UserParams[MasterBypass] = value;
-        break;
-    case Gain:
-        UserParams[Gain] = value;
-        break;
-    case Width:
-        UserParams[Width] = value;
-        break;
-    case Rotation:
-        UserParams[Rotation] = value;
-        break;
-    case LPFLink:
-        UserParams[LPFLink] = value;
-        break;
-    case PanLaw:
-        UserParams[PanLaw] = value;
-        break;
-    default:
-        return;
-    }
+    if (index >= 0 && index < totalNumParam)
+        UserParams[index] = value;
+    else return;
 }
 
 const juce::String StereoPanAudioProcessor::getParameterName(int index)
@@ -92,6 +72,8 @@ const juce::String StereoPanAudioProcessor::getParameterName(int index)
         return "LPF Link";
     case PanLaw:
         return "Pan Law";
+    case SampleRate:
+        return "SampleRate";
     default:
         return juce::String();
     }
@@ -122,6 +104,8 @@ const juce::String StereoPanAudioProcessor::getParameterText(int index)
             return "-6.0dB";
         else
             return juce::String();
+    case SampleRate:
+        return juce::String(UserParams[SampleRate]) + "Hz";
     default:
         return juce::String();
     }
@@ -280,13 +264,31 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             leftChannel[i] = midRotation + sideRotation;
             rightChannel[i] = midRotation - sideRotation;
         }
+
+        float  _samplerate = getSampleRate();
+        UserParams[SampleRate] = _samplerate;
+
+        float _frequency = 20.0f * pow(1000.0f, UserParams[LPFLink]);
+        float _Q = 0.7f;
+
+        LPF::SetParameter(_samplerate,_frequency,_Q);
+        if (Theta_r > 0)
+        {
+            LPF::DoProcess(rightChannel, buffer.getNumSamples());
+        }
+        else if (Theta_r < 0)
+        {
+            LPF::DoProcess(leftChannel, buffer.getNumSamples());
+        }
+
+        buffer.applyGain( pow(UserParams[Gain], 2));
     }
 }
 
 //==============================================================================
 bool StereoPanAudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return false; // (change this to false if you choose to not supply an editor)
 }
 
 juce::AudioProcessorEditor* StereoPanAudioProcessor::createEditor()
@@ -300,12 +302,80 @@ void StereoPanAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    juce::XmlElement root("Root");
+    juce::XmlElement* el;
+
+    el = root.createNewChildElement("MasterBypass");
+    el->addTextElement(juce::String(UserParams[MasterBypass]));
+
+    el = root.createNewChildElement("Gain");
+    el->addTextElement(juce::String(UserParams[Gain]));
+    
+    el = root.createNewChildElement("Width");
+    el->addTextElement(juce::String(UserParams[Width]));
+    
+    el = root.createNewChildElement("Rotation");
+    el->addTextElement(juce::String(UserParams[Rotation]));
+
+    el = root.createNewChildElement("LPFLink");
+    el->addTextElement(juce::String(UserParams[LPFLink]));
+
+    el = root.createNewChildElement("PanLaw");
+    el->addTextElement(juce::String(UserParams[PanLaw]));
+
+    //el = root.createNewChildElement("SampleRate");
+    //el->addTextElement(juce::String(UserParams[SampleRate]));
+
+    copyXmlToBinary(root, destData);
 }
 
 void StereoPanAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    
+    //juce::XmlElement* pRoot = getXmlFromBinary(data, sizeInBytes);
+
+    //juce::ScopedPointer<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+
+    if (xmlState.get() != nullptr)
+    {
+        forEachXmlChildElement(*xmlState, pChild)
+        {
+            if (pChild->hasTagName("MasterBypass"))
+            {
+                juce::String text = pChild->getAllSubText();
+                setParameter(MasterBypass, text.getFloatValue());
+            }
+            else if (pChild->hasTagName("Gain"))
+            {
+                juce::String text = pChild->getAllSubText();
+                setParameter(Gain, text.getFloatValue());
+            }
+            else if (pChild->hasTagName("Width"))
+            {
+                juce::String text = pChild->getAllSubText();
+                setParameter(Width, text.getFloatValue());
+            }
+            else if (pChild->hasTagName("Rotation"))
+            {
+                juce::String text = pChild->getAllSubText();
+                setParameter(Rotation, text.getFloatValue());
+            }
+            else if (pChild->hasTagName("LPFLink"))
+            {
+                juce::String text = pChild->getAllSubText();
+                setParameter(LPFLink, text.getFloatValue());
+            }
+            else if (pChild->hasTagName("PanLaw"))
+            {
+                juce::String text = pChild->getAllSubText();
+                setParameter(PanLaw, text.getFloatValue());
+            }
+        }
+    }
 }
 
 //==============================================================================
