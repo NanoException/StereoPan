@@ -223,8 +223,8 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+   // for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+   //     buffer.clear (i, 0, buffer.getNumSamples());
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
@@ -252,34 +252,41 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
-            auto midInput = (leftChannel[i] + rightChannel[i])/2;
-            auto sideInput = leftChannel[i] - rightChannel[i];
+            auto midInput = (leftChannel[i] + rightChannel[i]) / sqrt(2);
+            auto sideInput = (leftChannel[i] - rightChannel[i]) / sqrt(2);
 
-            auto midWidth = midInput * sin(M_PI/4 - Theta_w);
-            auto sideWidth = sideInput * cos(M_PI - Theta_w);
+            auto midWidth = midInput * sin(M_PI/4 - Theta_w) * sqrt(2);
+            auto sideWidth = sideInput * cos(M_PI/4 - Theta_w) * sqrt(2);
 
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
 
-            leftChannel[i] = midRotation + sideRotation;
-            rightChannel[i] = midRotation - sideRotation;
+            leftChannel[i] = (midRotation + sideRotation)/sqrt(2);
+            rightChannel[i] = (midRotation - sideRotation)/sqrt(2);
         }
 
         float  _samplerate = getSampleRate();
         UserParams[SampleRate] = _samplerate;
 
         float _frequency = 20.0f * pow(1000.0f, UserParams[LPFLink]);
-        float _Q = 0.7f;
+        //float _Q = 0.7f;
 
-        LPF::SetParameter(_samplerate,_frequency,_Q);
+        //LPF.SetParameter(_samplerate, _frequency, _Q);
+        
+        /*
         if (Theta_r > 0)
         {
-            LPF::DoProcess(rightChannel, buffer.getNumSamples());
+            //LPF.DoProcess(float rightChannel, int buffer.getNumSamples());
+            iirfilter[1].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate,_frequency));
+            iirfilter[1].processSamples(buffer.getWritePointer(1), buffer.getNumSamples());
         }
         else if (Theta_r < 0)
         {
-            LPF::DoProcess(leftChannel, buffer.getNumSamples());
+            //LPF.DoProcess(float leftChannel, int buffer.getNumSamples());
+            iirfilter[0].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
+            iirfilter[0].processSamples(buffer.getWritePointer(0), buffer.getNumSamples());
         }
+        */
 
         buffer.applyGain( pow(UserParams[Gain], 2));
     }

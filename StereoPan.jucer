@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="yRiEjs" name="StereoPan" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
+              pluginFormats="buildVST3">
   <MAINGROUP id="UEiWTs" name="StereoPan">
     <GROUP id="{14DC1D26-D166-5F61-29EA-FE38C434365C}" name="Source">
       <GROUP id="{3AE31444-2331-2D7C-DCC9-8B051374186D}" name="LPF">

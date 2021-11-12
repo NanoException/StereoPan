@@ -75,5 +75,6 @@ private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoPanAudioProcessor)
 
-        float UserParams[totalNumParam];
+    float UserParams[totalNumParam];
+    juce::IIRFilter iirfilter[2];
 };
