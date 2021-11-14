@@ -239,41 +239,44 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // interleaved by keeping the same state.
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        //auto* channelData = buffer.getWritePointer (channel);
-
         auto* leftChannel = buffer.getWritePointer(0);
         auto* rightChannel = buffer.getWritePointer(1);
 
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
+        //ステレオ幅角、回転角の計算
         float Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
         float Theta_r = -(M_PI/2 * UserParams[Rotation] - M_PI / 4);
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
+            //MS信号の計算
             auto midInput = (leftChannel[i] + rightChannel[i]);
             auto sideInput = (leftChannel[i] - rightChannel[i]);
-
+            //ステレオ幅処理
             auto midWidth = midInput * sin(M_PI/4 - Theta_w) * sqrt(2);
             auto sideWidth = sideInput * cos(M_PI/4 - Theta_w) * sqrt(2);
-
+            //回転処理
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
-
+            //LR信号に戻す
             leftChannel[i] = (midRotation + sideRotation);
             rightChannel[i] = (midRotation - sideRotation);
         }
 
-        //juce::dsp::AudioBlock<float> stereoblock(buffer);
+        //回転方向と逆チャンネルにLPFを掛ける処理
 
+        //サウンプリングレート取得
         float _samplerate = getSampleRate();
         UserParams[SampleRate] = _samplerate;
 
+        //カットオフ周波数計算
         float frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
         float LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
         float _frequency = LPFBias*frequencyLink + (1-LPFBias)*20000.0f;
 
+        //LPFを通す
         auto* cutChannel = rightChannel;
         int cutChannelID = 1;
         if (Theta_r > 0.0f)
@@ -281,19 +284,18 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             cutChannel = rightChannel;
             cutChannelID = 1;
         }
-            
         else if (Theta_r < 0.0f)
         {
             cutChannel = leftChannel;
             cutChannelID = 0;
         }
-
         if (Theta_r != 0)
         {
             LPF[channel].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
             LPF[channel].processSamples(cutChannel, buffer.getNumSamples());
         }
         
+        //ポストゲイン
         buffer.applyGain( pow(UserParams[Gain], 2) );
     }
 }
