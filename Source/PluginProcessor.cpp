@@ -70,6 +70,8 @@ const juce::String StereoPanAudioProcessor::getParameterName(int index)
         return "Rotation";
     case LPFLink:
         return "LPF Link";
+    case LPFFreq:
+        return "LPF Frequency";
     case PanLaw:
         return "Pan Law";
     case SampleRate:
@@ -88,11 +90,13 @@ const juce::String StereoPanAudioProcessor::getParameterText(int index)
     case Gain:
         return juce::String(juce::Decibels::gainToDecibels( pow(UserParams[Gain], 2)*2.0f ), 1)+"dB";
     case Width:
-        return juce::String(UserParams[Width]*200.0f)+"%";
+        return juce::String(int(UserParams[Width]*200.0f))+"%";
     case Rotation:
-        return juce::String(UserParams[Rotation]*200.0f-100.0f);
+        return juce::String(int(UserParams[Rotation]*200.0f-100.0f))+"%";
     case LPFLink:
-        return juce::String(UserParams[LPFLink]*100.0f);
+        return UserParams[LPFLink] == 1.0f ? "UNLINKED" : "LINKED";
+    case LPFFreq:
+        return juce::String(1.0f * pow(20000.0f, UserParams[LPFFreq]))+"Hz";
     case PanLaw:
         if (UserParams[PanLaw] <= 0.0f)
             return "0.0dB";
@@ -240,42 +244,43 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         //auto* leftOutput = leftChannel;
         //auto* rightOutput = rightChannel;
 
+        //Bypass
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
-        //�X�e���I���p�A��]�p�̌v�Z
+        //Caluculate angles of width and rotation
         float Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
-        float Theta_r = M_PI/2 * UserParams[Rotation] - M_PI / 4;
+        float Theta_r = -(M_PI/2 * UserParams[Rotation] - M_PI / 4);
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
-            //MS�M���̌v�Z
+            //Generate MS signals
             auto midInput = (leftChannel[i] + rightChannel[i]);
             auto sideInput = (leftChannel[i] - rightChannel[i]);
-            //�X�e���I������
+            //Processing stereo width
             auto midWidth = midInput * sin(M_PI/4 - Theta_w) * sqrt(2);
             auto sideWidth = sideInput * cos(M_PI/4 - Theta_w) * sqrt(2);
-            //��]����
+            //Processing rotation
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
-            //LR�M���ɖ߂�
+            //Revert to LR signals
             leftChannel[i] = (midRotation + sideRotation);
             rightChannel[i] = (midRotation - sideRotation);
         }
 
 
-        //��]���Ƌt�`�����l����LPF��|���鏈��
+        //Apply LPF to the channel opposite direction of rotation
 
-        //�T�E���v�����O���[�g�擾
+        //Get the sampling rate
         float _samplerate = getSampleRate();
         UserParams[SampleRate] = _samplerate;
 
-        //�J�b�g�I�t��g���v�Z
+        //Calculate the cutoff frequency
         float frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
         float LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
         float _frequency = LPFBias*frequencyLink + (1-LPFBias)*20000.0f;
 
-        //LPF��ʂ�
+        //Apply LPF
         auto* cutChannel = rightChannel;
         int cutChannelID = 1;
         if (Theta_r > 0.0f)
@@ -288,13 +293,13 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             cutChannel = leftChannel;
             cutChannelID = 0;
         }
-        if (Theta_r != 0)
+        if ((Theta_r != 0)  && (UserParams[LPFLink] != 1))
         {
             LPF[channel].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
             LPF[channel].processSamples(cutChannel, buffer.getNumSamples());
         }
         
-        //�|�X�g�Q�C��
+        //Post Gain
 
         buffer.applyGain( pow(UserParams[Gain], 2) );
     }

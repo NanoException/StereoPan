@@ -2,7 +2,9 @@
 
 <JUCERPROJECT id="yRiEjs" name="StereoPan" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              pluginFormats="buildVST3">
+              pluginFormats="buildVST3" pluginManufacturer="liquid1224" pluginName="LPanner"
+              pluginDesc="LPanner" version="0.0.1" companyWebsite="https://liquid124.net"
+              companyName="liquid1224">
   <MAINGROUP id="UEiWTs" name="StereoPan">
     <GROUP id="{14DC1D26-D166-5F61-29EA-FE38C434365C}" name="Source">
       <GROUP id="{3AE31444-2331-2D7C-DCC9-8B051374186D}" name="LPF">
