@@ -79,8 +79,4 @@ private:
     float UserParams[totalNumParam];
     
     juce::IIRFilter LPF[2];
-    /*
-    using StereoLPF = juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>>;
-    StereoLPF LPF;
-    */
 };
