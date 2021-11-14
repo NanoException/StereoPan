@@ -300,7 +300,6 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         }
         
         //Post Gain
-
         buffer.applyGain( pow(UserParams[Gain], 2) );
     }
 }

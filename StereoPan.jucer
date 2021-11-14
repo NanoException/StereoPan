@@ -1,23 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="yRiEjs" name="StereoPan" projectType="audioplug" useAppConfig="0"
+<JUCERPROJECT id="bO1iZo" name="LPanner" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              pluginFormats="buildVST3" pluginManufacturer="liquid1224" pluginName="LPanner"
-              pluginDesc="LPanner" version="0.0.1" companyWebsite="https://liquid124.net"
-              companyName="liquid1224">
-  <MAINGROUP id="UEiWTs" name="StereoPan">
-    <GROUP id="{14DC1D26-D166-5F61-29EA-FE38C434365C}" name="Source">
-      <GROUP id="{3AE31444-2331-2D7C-DCC9-8B051374186D}" name="LPF">
-        <FILE id="zSn0BO" name="LPF.cpp" compile="1" resource="0" file="Source/LPF/LPF.cpp"/>
-        <FILE id="amMXDf" name="LPF.h" compile="0" resource="0" file="Source/LPF/LPF.h"/>
-      </GROUP>
-      <FILE id="HRVPz4" name="PluginProcessor.cpp" compile="1" resource="0"
+              version="0.0.1" pluginFormats="buildVST3" pluginManufacturer="liquid1224"
+              companyName="liquid1224" companyWebsite="https://liquid1224.net">
+  <MAINGROUP id="DFf4IY" name="LPanner">
+    <GROUP id="{48748E83-E1FF-1D5C-C73E-3A0A8FF4B8F0}" name="Source">
+      <FILE id="joNcA3" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
-      <FILE id="gduB5x" name="PluginProcessor.h" compile="0" resource="0"
+      <FILE id="s6QmWY" name="PluginProcessor.h" compile="0" resource="0"
             file="Source/PluginProcessor.h"/>
-      <FILE id="rekuAU" name="PluginEditor.cpp" compile="1" resource="0"
+      <FILE id="blIs4Y" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
-      <FILE id="iPd1mi" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="vKHy9F" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
     </GROUP>
   </MAINGROUP>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
@@ -42,7 +37,6 @@
         <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
         <MODULEPATH id="juce_opengl" path="../../JUCE/modules"/>
-        <MODULEPATH id="juce_video" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </VS2019>
   </EXPORTFORMATS>
@@ -62,6 +56,5 @@
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
-    <MODULE id="juce_video" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
 </JUCERPROJECT>
