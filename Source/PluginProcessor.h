@@ -60,7 +60,6 @@ public:
         Width,
         Rotation,
         LPFLink,
-        LPFFreq,
         PanLaw,
         SampleRate,
         totalNumParam
@@ -77,10 +76,5 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoPanAudioProcessor)
 
     float UserParams[totalNumParam];
-    
-    juce::IIRFilter LPF[2];
-    /*
-    using StereoLPF = juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>>;
-    StereoLPF LPF;
-    */
+    juce::IIRFilter iirfilter[2];
 };
