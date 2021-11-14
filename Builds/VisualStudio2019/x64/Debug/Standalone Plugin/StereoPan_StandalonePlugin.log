@@ -1,1 +1,0 @@
-﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(436,5): error MSB8020: Visual Studio 2019 (プラットフォーム ツールセット = 'v142') のビルド ツールが見つかりません。v142 ビルド ツールを使用してビルドするには、Visual Studio 2019 ビルド ツールをインストールしてください。または、[プロジェクト] メニューを選択するかソリューションを右クリックし [ソリューションの再ターゲット] を選択して、現在の Visual Studio Tools にアップグレードすることもできます。
