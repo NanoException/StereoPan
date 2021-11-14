@@ -29,7 +29,6 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
     UserParams[Width] = 0.5f;
     UserParams[Rotation] = 0.5f;
     UserParams[LPFLink] = 0.0f;
-    UserParams[LPFFreq] = 1.0f;
     UserParams[PanLaw] = 0.0f;
 }
 
@@ -71,8 +70,6 @@ const juce::String StereoPanAudioProcessor::getParameterName(int index)
         return "Rotation";
     case LPFLink:
         return "LPF Link";
-    case LPFFreq:
-        return "LPF Frequency";
     case PanLaw:
         return "Pan Law";
     case SampleRate:
@@ -91,13 +88,11 @@ const juce::String StereoPanAudioProcessor::getParameterText(int index)
     case Gain:
         return juce::String(juce::Decibels::gainToDecibels( pow(UserParams[Gain], 2)*2.0f ), 1)+"dB";
     case Width:
-        return juce::String(int(UserParams[Width]*200.0f))+"%";
+        return juce::String(UserParams[Width]*200.0f)+"%";
     case Rotation:
-        return juce::String(int(UserParams[Rotation]*200.0f-100.0f))+"%";
+        return juce::String(UserParams[Rotation]*200.0f-100.0f);
     case LPFLink:
-        return UserParams[LPFLink] == 1.0f ? "EFFECT" : "BYPASS";
-    case LPFFreq:
-        return juce::String(UserParams[LPFFreq] * 100.0f);
+        return juce::String(UserParams[LPFLink]*100.0f);
     case PanLaw:
         if (UserParams[PanLaw] <= 0.0f)
             return "0.0dB";
@@ -242,41 +237,45 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         auto* leftChannel = buffer.getWritePointer(0);
         auto* rightChannel = buffer.getWritePointer(1);
 
+        //auto* leftOutput = leftChannel;
+        //auto* rightOutput = rightChannel;
+
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
-        //ƒXƒeƒŒƒI•ŠpA‰ñ“]Šp‚ÌŒvZ
+        //ï¿½Xï¿½eï¿½ï¿½ï¿½Iï¿½ï¿½ï¿½pï¿½Aï¿½ï¿½]ï¿½pï¿½ÌŒvï¿½Z
         float Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
-        float Theta_r = -(M_PI/2 * UserParams[Rotation] - M_PI / 4);
+        float Theta_r = M_PI/2 * UserParams[Rotation] - M_PI / 4;
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
-            //MSM†‚ÌŒvZ
+            //MSï¿½Mï¿½ï¿½ï¿½ÌŒvï¿½Z
             auto midInput = (leftChannel[i] + rightChannel[i]);
             auto sideInput = (leftChannel[i] - rightChannel[i]);
-            //ƒXƒeƒŒƒI•ˆ—
+            //ï¿½Xï¿½eï¿½ï¿½ï¿½Iï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             auto midWidth = midInput * sin(M_PI/4 - Theta_w) * sqrt(2);
             auto sideWidth = sideInput * cos(M_PI/4 - Theta_w) * sqrt(2);
-            //‰ñ“]ˆ—
+            //ï¿½ï¿½]ï¿½ï¿½ï¿½ï¿½
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
-            //LRM†‚É–ß‚·
+            //LRï¿½Mï¿½ï¿½ï¿½É–ß‚ï¿½
             leftChannel[i] = (midRotation + sideRotation);
             rightChannel[i] = (midRotation - sideRotation);
         }
 
-        //‰ñ“]•ûŒü‚Æ‹tƒ`ƒƒƒ“ƒlƒ‹‚ÉLPF‚ğŠ|‚¯‚éˆ—
 
-        //ƒTƒEƒ“ƒvƒŠƒ“ƒOƒŒ[ƒgæ“¾
+        //ï¿½ï¿½]ï¿½ï¿½ï¿½Æ‹tï¿½`ï¿½ï¿½ï¿½ï¿½ï¿½lï¿½ï¿½ï¿½ï¿½LPFï¿½ï¿½|ï¿½ï¿½ï¿½éˆï¿½ï¿½
+
+        //ï¿½Tï¿½Eï¿½ï¿½ï¿½vï¿½ï¿½ï¿½ï¿½ï¿½Oï¿½ï¿½ï¿½[ï¿½gï¿½æ“¾
         float _samplerate = getSampleRate();
         UserParams[SampleRate] = _samplerate;
 
-        //ƒJƒbƒgƒIƒtü”g”ŒvZ
+        //ï¿½Jï¿½bï¿½gï¿½Iï¿½tï¿½ï¿½gï¿½ï¿½ï¿½vï¿½Z
         float frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
         float LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
         float _frequency = LPFBias*frequencyLink + (1-LPFBias)*20000.0f;
 
-        //LPF‚ğ’Ê‚·
+        //LPFï¿½ï¿½Ê‚ï¿½
         auto* cutChannel = rightChannel;
         int cutChannelID = 1;
         if (Theta_r > 0.0f)
@@ -295,7 +294,8 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             LPF[channel].processSamples(cutChannel, buffer.getNumSamples());
         }
         
-        //ƒ|ƒXƒgƒQƒCƒ“
+        //ï¿½|ï¿½Xï¿½gï¿½Qï¿½Cï¿½ï¿½
+
         buffer.applyGain( pow(UserParams[Gain], 2) );
     }
 }
@@ -334,9 +334,6 @@ void StereoPanAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 
     el = root.createNewChildElement("LPFLink");
     el->addTextElement(juce::String(UserParams[LPFLink]));
-
-    el = root.createNewChildElement("LPFFreq");
-    el->addTextElement(juce::String(UserParams[LPFFreq]));
 
     el = root.createNewChildElement("PanLaw");
     el->addTextElement(juce::String(UserParams[PanLaw]));
@@ -386,11 +383,6 @@ void StereoPanAudioProcessor::setStateInformation (const void* data, int sizeInB
             {
                 juce::String text = pChild->getAllSubText();
                 setParameter(LPFLink, text.getFloatValue());
-            }
-            else if (pChild->hasTagName("LPFFreq"))
-            {
-                juce::String text = pChild->getAllSubText();
-                setParameter(LPFFreq, text.getFloatValue());
             }
             else if (pChild->hasTagName("PanLaw"))
             {

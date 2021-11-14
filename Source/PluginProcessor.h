@@ -60,7 +60,6 @@ public:
         Width,
         Rotation,
         LPFLink,
-        LPFFreq,
         PanLaw,
         SampleRate,
         totalNumParam
