@@ -234,10 +234,6 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // interleaved by keeping the same state.
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        //auto* channelData = buffer.getWritePointer (channel);
-
-        
-
         auto* leftChannel = buffer.getWritePointer(0);
         auto* rightChannel = buffer.getWritePointer(1);
 
@@ -247,54 +243,58 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
+        //�X�e���I���p�A��]�p�̌v�Z
         float Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
         float Theta_r = M_PI/2 * UserParams[Rotation] - M_PI / 4;
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
+            //MS�M���̌v�Z
             auto midInput = (leftChannel[i] + rightChannel[i]);
             auto sideInput = (leftChannel[i] - rightChannel[i]);
-
+            //�X�e���I������
             auto midWidth = midInput * sin(M_PI/4 - Theta_w) * sqrt(2);
             auto sideWidth = sideInput * cos(M_PI/4 - Theta_w) * sqrt(2);
-
+            //��]����
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
-
+            //LR�M���ɖ߂�
             leftChannel[i] = (midRotation + sideRotation);
             rightChannel[i] = (midRotation - sideRotation);
         }
 
-        float  _samplerate = getSampleRate();
+
+        //��]���Ƌt�`�����l����LPF��|���鏈��
+
+        //�T�E���v�����O���[�g�擾
+        float _samplerate = getSampleRate();
         UserParams[SampleRate] = _samplerate;
 
-        float frequencyLink = 1.0f * pow(22000.0f, UserParams[LPFLink]);
-        //float frequencyLink = (22000.0-220.0)*UserParams[LPFLink] + 220.0f;
+        //�J�b�g�I�t��g���v�Z
+        float frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
         float LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
-        float _frequency = LPFBias*(frequencyLink - 22000.0f)+22000.0f;
-        //float _Q = 0.7f;
+        float _frequency = LPFBias*frequencyLink + (1-LPFBias)*20000.0f;
 
-        
-        iirfilter[channel].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
-        iirfilter[channel].processSamples(buffer.getWritePointer(channel), buffer.getNumSamples());
-        
-
-        //LPF.SetParameter(_samplerate, _frequency, _Q);
-        
-        /*
-        if ((Theta_r > 0) && (channel == 1) )
+        //LPF��ʂ�
+        auto* cutChannel = rightChannel;
+        int cutChannelID = 1;
+        if (Theta_r > 0.0f)
         {
-            //LPF.DoProcess(float rightChannel, int buffer.getNumSamples());
-            iirfilter[1].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate,_frequency));
-            iirfilter[1].processSamples(buffer.getWritePointer(1), buffer.getNumSamples());
+            cutChannel = rightChannel;
+            cutChannelID = 1;
         }
-        else if ((Theta_r < 0) && (channel == 0))
+        else if (Theta_r < 0.0f)
         {
-            //LPF.DoProcess(float leftChannel, int buffer.getNumSamples());
-            iirfilter[0].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
-            iirfilter[0].processSamples(buffer.getWritePointer(0), buffer.getNumSamples());
+            cutChannel = leftChannel;
+            cutChannelID = 0;
         }
-        */
+        if (Theta_r != 0)
+        {
+            LPF[channel].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
+            LPF[channel].processSamples(cutChannel, buffer.getNumSamples());
+        }
+        
+        //�|�X�g�Q�C��
 
         buffer.applyGain( pow(UserParams[Gain], 2) );
     }
