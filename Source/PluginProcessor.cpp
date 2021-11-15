@@ -74,8 +74,6 @@ const juce::String StereoPanAudioProcessor::getParameterName(int index)
         return "LPF Frequency";
     case PanLaw:
         return "Pan Law";
-    case SampleRate:
-        return "SampleRate";
     default:
         return juce::String();
     }
@@ -108,8 +106,6 @@ const juce::String StereoPanAudioProcessor::getParameterText(int index)
             return "-6.0dB";
         else
             return juce::String();
-    case SampleRate:
-        return juce::String(UserParams[SampleRate]) + "Hz";
     default:
         return juce::String();
     }
@@ -248,6 +244,16 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
+        float _PanLaw = 0.0f;
+        if (UserParams[PanLaw] <= 0.0f)
+            _PanLaw = 0.0f;
+        else if (0.0f < UserParams[PanLaw] <= 0.5f)
+            _PanLaw = -3.0f;
+        else if (0.5f < UserParams[PanLaw] < 1.0f)
+            _PanLaw = -4.5f;
+        else if (UserParams[PanLaw] = 1.0f)
+            _PanLaw = -6.0f;
+
         //Caluculate angles of width and rotation
         float Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
         float Theta_r = -(M_PI/2 * UserParams[Rotation] - M_PI / 4);
@@ -268,12 +274,10 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             rightChannel[i] = (midRotation - sideRotation);
         }
 
-
         //Apply LPF to the channel opposite direction of rotation
 
         //Get the sampling rate
         float _samplerate = getSampleRate();
-        UserParams[SampleRate] = _samplerate;
 
         //Calculate the cutoff frequency
         float frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);

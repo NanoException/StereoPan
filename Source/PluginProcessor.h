@@ -61,7 +61,6 @@ public:
         LPFLink,
         LPFFreq,
         PanLaw,
-        SampleRate,
         totalNumParam
     };
     int getNumParameters() override;
