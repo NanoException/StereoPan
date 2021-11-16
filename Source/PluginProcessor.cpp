@@ -24,12 +24,12 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
                        )
 #endif
 {
-    UserParams[MasterBypass] = 0.0f;
-    UserParams[Gain] = 0.7f;
-    UserParams[Width] = 0.5f;
-    UserParams[Rotation] = 0.5f;
-    UserParams[LPFLink] = 0.0f;
-    UserParams[PanLaw] = 0.0f;
+    UserParams[MasterBypass] = 0.0;
+    UserParams[Gain] = 0.7;
+    UserParams[Width] = 0.5;
+    UserParams[Rotation] = 0.5;
+    UserParams[LPFLink] = 0.0;
+    UserParams[PanLaw] = 0.0;
 }
 
 StereoPanAudioProcessor::~StereoPanAudioProcessor()
@@ -92,17 +92,17 @@ const juce::String StereoPanAudioProcessor::getParameterText(int index)
     case Rotation:
         return juce::String(int(UserParams[Rotation]*200.0f-100.0f))+"%";
     case LPFLink:
-        return UserParams[LPFLink] == 1.0f ? "UNLINKED" : "LINKED";
+        return UserParams[LPFLink] == 1.0 ? "UNLINKED" : "LINKED";
     case LPFFreq:
         return juce::String(1.0f * pow(20000.0f, UserParams[LPFFreq]))+"Hz";
     case PanLaw:
         if (UserParams[PanLaw] <= 0.0f)
             return "0.0dB";
-        else if (0.0f < UserParams[PanLaw] <= 0.5f)
+        else if (0.0f < UserParams[PanLaw] <= 0.5)
             return"-3.0dB";
-        else if (0.5f < UserParams[PanLaw] < 1.0f)
+        else if (0.5f < UserParams[PanLaw] < 1.0)
             return "-4.5dB";
-        else if (UserParams[PanLaw] = 1.0f)
+        else if (UserParams[PanLaw] = 1.0)
             return "-6.0dB";
         else
             return juce::String();
@@ -234,8 +234,8 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // interleaved by keeping the same state.
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        auto* leftChannel = buffer.getWritePointer(0);
-        auto* rightChannel = buffer.getWritePointer(1);
+        float* leftChannel = buffer.getWritePointer(0);
+        float* rightChannel = buffer.getWritePointer(1);
 
         //auto* leftOutput = leftChannel;
         //auto* rightOutput = rightChannel;
@@ -244,19 +244,19 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
-        float _PanLaw = 0.0f;
-        if (UserParams[PanLaw] <= 0.0f)
-            _PanLaw = 0.0f;
-        else if (0.0f < UserParams[PanLaw] <= 0.5f)
-            _PanLaw = -3.0f;
-        else if (0.5f < UserParams[PanLaw] < 1.0f)
-            _PanLaw = -4.5f;
-        else if (UserParams[PanLaw] = 1.0f)
-            _PanLaw = -6.0f;
+        double _PanLaw = 0.0;
+        if (UserParams[PanLaw] <= 0.0)
+            _PanLaw = 0.0;
+        else if (0.0 < UserParams[PanLaw] <= 0.5)
+            _PanLaw = -3.0;
+        else if (0.5 < UserParams[PanLaw] < 1.0)
+            _PanLaw = -4.5;
+        else if (UserParams[PanLaw] = 1.0)
+            _PanLaw = -6.0;
 
         //Caluculate angles of width and rotation
-        float Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
-        float Theta_r = -(M_PI/2 * UserParams[Rotation] - M_PI / 4);
+        double Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
+        double Theta_r = -(M_PI/2 * UserParams[Rotation] - M_PI / 4);
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
@@ -277,22 +277,22 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         //Apply LPF to the channel opposite direction of rotation
 
         //Get the sampling rate
-        float _samplerate = getSampleRate();
+        double _samplerate = getSampleRate();
 
         //Calculate the cutoff frequency
-        float frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
-        float LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
-        float _frequency = LPFBias*frequencyLink + (1-LPFBias)*20000.0f;
+        double frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
+        double LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
+        double _frequency = LPFBias*frequencyLink + (1-LPFBias)*20000.0f;
 
         //Apply LPF
         auto* cutChannel = rightChannel;
         int cutChannelID = 1;
-        if (Theta_r > 0.0f)
+        if (Theta_r > 0.0)
         {
             cutChannel = rightChannel;
             cutChannelID = 1;
         }
-        else if (Theta_r < 0.0f)
+        else if (Theta_r < 0.0)
         {
             cutChannel = leftChannel;
             cutChannelID = 0;
