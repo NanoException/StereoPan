@@ -211,34 +211,27 @@ bool StereoPanAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 }
 #endif
 
-void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void StereoPanAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+{
+    processBufferSamples(buffer, midiMessages);
+}
+
+void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<double>& buffer, juce::MidiBuffer& midiMessages)
+{
+    processBufferSamples(buffer, midiMessages);
+}
+
+template <class sampleType>
+void StereoPanAudioProcessor::processBufferSamples(juce::AudioBuffer<sampleType>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-   // for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-   //     buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        float* leftChannel = buffer.getWritePointer(0);
-        float* rightChannel = buffer.getWritePointer(1);
-
-        //auto* leftOutput = leftChannel;
-        //auto* rightOutput = rightChannel;
+        auto* leftChannel = buffer.getWritePointer(0);
+        auto* rightChannel = buffer.getWritePointer(1);
 
         //Bypass
         if (UserParams[MasterBypass] == 1.0f)
@@ -255,8 +248,8 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             _PanLaw = -6.0;
 
         //Caluculate angles of width and rotation
-        double Theta_w = M_PI/2 * UserParams[Width] - M_PI / 4;
-        double Theta_r = -(M_PI/2 * UserParams[Rotation] - M_PI / 4);
+        double Theta_w = M_PI / 2 * UserParams[Width] - M_PI / 4;
+        double Theta_r = -(M_PI / 2 * UserParams[Rotation] - M_PI / 4);
 
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
@@ -264,8 +257,8 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             auto midInput = (leftChannel[i] + rightChannel[i]);
             auto sideInput = (leftChannel[i] - rightChannel[i]);
             //Processing stereo width
-            auto midWidth = midInput * sin(M_PI/4 - Theta_w) * sqrt(2);
-            auto sideWidth = sideInput * cos(M_PI/4 - Theta_w) * sqrt(2);
+            auto midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
+            auto sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
             //Processing rotation
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
@@ -282,9 +275,11 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         //Calculate the cutoff frequency
         double frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
         double LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
-        double _frequency = LPFBias*frequencyLink + (1-LPFBias)*20000.0f;
+        double _frequency = LPFBias * frequencyLink + (1 - LPFBias) * 20000.0f;
 
         //Apply LPF
+
+        /*
         auto* cutChannel = rightChannel;
         int cutChannelID = 1;
         if (Theta_r > 0.0)
@@ -297,15 +292,21 @@ void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             cutChannel = leftChannel;
             cutChannelID = 0;
         }
-        if ((Theta_r != 0)  && (UserParams[LPFLink] != 1))
+        if ((Theta_r != 0) && (UserParams[LPFLink] != 1))
         {
             LPF[channel].setCoefficients(juce::IIRCoefficients::makeLowPass(_samplerate, _frequency));
             LPF[channel].processSamples(cutChannel, buffer.getNumSamples());
         }
-        
+        */
+
         //Post Gain
-        buffer.applyGain( pow(UserParams[Gain], 2) );
+        buffer.applyGain(pow(UserParams[Gain], 2));
     }
+}
+
+bool StereoPanAudioProcessor::supportsDoublePrecisionProcessing() const
+{
+    return true;
 }
 
 //==============================================================================

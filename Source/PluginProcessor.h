@@ -29,6 +29,12 @@ public:
    #endif
 
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void processBlock(juce::AudioBuffer<double>&, juce::MidiBuffer&) override;
+
+    template <class sampleType>
+    void processBufferSamples(juce::AudioBuffer<sampleType>&, juce::MidiBuffer&);
+
+    bool supportsDoublePrecisionProcessing() const override;
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override;
