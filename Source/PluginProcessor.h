@@ -9,6 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "LPF.h"
 
 //==============================================================================
 /**
@@ -81,5 +82,5 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoPanAudioProcessor)
 
     double UserParams[totalNumParam];
-    juce::IIRFilter LPF[2];
+    LPF IIRFilter[2];
 };
