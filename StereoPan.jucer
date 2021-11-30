@@ -6,10 +6,6 @@
               companyName="liquid1224" companyWebsite="https://liquid1224.net">
   <MAINGROUP id="DFf4IY" name="LPanner">
     <GROUP id="{48748E83-E1FF-1D5C-C73E-3A0A8FF4B8F0}" name="Source">
-      <GROUP id="{AC0F72DD-9B28-24C2-E0B0-C2C1BE0B9E77}" name="LPF">
-        <FILE id="DW9KOA" name="LPF.cpp" compile="1" resource="0" file="Source/LPF.cpp"/>
-        <FILE id="vAYgYq" name="LPF.h" compile="0" resource="0" file="Source/LPF.h"/>
-      </GROUP>
       <FILE id="joNcA3" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="s6QmWY" name="PluginProcessor.h" compile="0" resource="0"
