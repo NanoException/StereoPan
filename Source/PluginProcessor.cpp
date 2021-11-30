@@ -213,97 +213,18 @@ bool StereoPanAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 
 void StereoPanAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    
+    processBlockWrapper(buffer, midiMessages);
 }
 
 
 void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<double>& buffer, juce::MidiBuffer& midiMessages)
 {
-    //processBufferSamples(buffer, midiMessages);
-    juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
-
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* leftChannel = buffer.getWritePointer(0);
-        auto* rightChannel = buffer.getWritePointer(1);
-
-        //Bypass
-        if (UserParams[MasterBypass] == 1.0f)
-            return;
-
-        double _PanLaw = 0.0;
-        if (UserParams[PanLaw] <= 0.0)
-            _PanLaw = 0.0;
-        else if (0.0 < UserParams[PanLaw] <= 0.5)
-            _PanLaw = -3.0;
-        else if (0.5 < UserParams[PanLaw] < 1.0)
-            _PanLaw = -4.5;
-        else if (UserParams[PanLaw] = 1.0)
-            _PanLaw = -6.0;
-
-        //Caluculate angles of width and rotation
-        double Theta_w = M_PI / 2 * UserParams[Width] - M_PI / 4;
-        double Theta_r = -(M_PI / 2 * UserParams[Rotation] - M_PI / 4);
-
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-        {
-            //Generate MS signals
-            auto midInput = (leftChannel[i] + rightChannel[i]);
-            auto sideInput = (leftChannel[i] - rightChannel[i]);
-            //Processing stereo width
-            auto midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
-            auto sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
-            //Processing rotation
-            auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
-            auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
-            //Revert to LR signals
-            leftChannel[i] = (midRotation + sideRotation);
-            rightChannel[i] = (midRotation - sideRotation);
-        }
-
-        //Apply LPF to the channel opposite direction of rotation
-
-        //Get the sampling rate
-        double _samplerate = getSampleRate();
-
-        //Calculate the cutoff frequency
-        double frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
-        double LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
-        double _frequency = LPFBias * frequencyLink + (1 - LPFBias) * 20000.0f;
-
-        double _Q = 0.7;
-
-        //Apply LPF
-        auto* cutChannel = rightChannel;
-        int cutChannelID = 1;
-
-        if (Theta_r > 0.0)
-        {
-            cutChannel = rightChannel;
-            cutChannelID = 1;
-        }
-        else if (Theta_r < 0.0)
-        {
-            cutChannel = leftChannel;
-            cutChannelID = 0;
-        }
-
-        if ((Theta_r != 0) && (UserParams[LPFLink] != 1))
-        {
-            IIRFilter[cutChannelID].SetParameter(_samplerate, _frequency, _Q);
-            IIRFilter[cutChannelID].DoProcess(cutChannel, buffer.getNumSamples());
-        }
-
-        //Post Gain
-        buffer.applyGain(pow(UserParams[Gain], 2));
-    }
+    processBlockWrapper(buffer, midiMessages);
 }
 
-/*
+
 template <class sampleType>
-void StereoPanAudioProcessor::processBufferSamples(juce::AudioBuffer<sampleType>& buffer, juce::MidiBuffer& midiMessages)
+void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
@@ -311,13 +232,15 @@ void StereoPanAudioProcessor::processBufferSamples(juce::AudioBuffer<sampleType>
 
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        auto* leftChannel = buffer.getWritePointer(0);
-        auto* rightChannel = buffer.getWritePointer(1);
-
         //Bypass
         if (UserParams[MasterBypass] == 1.0f)
             return;
 
+        /**** Get LR channels ****/
+        auto* leftChannel = buffer.getWritePointer(0);
+        auto* rightChannel = buffer.getWritePointer(1);
+
+        /**** Pan Law ****/
         double _PanLaw = 0.0;
         if (UserParams[PanLaw] <= 0.0)
             _PanLaw = 0.0;
@@ -328,10 +251,11 @@ void StereoPanAudioProcessor::processBufferSamples(juce::AudioBuffer<sampleType>
         else if (UserParams[PanLaw] = 1.0)
             _PanLaw = -6.0;
 
-        //Caluculate angles of width and rotation
+        /**** Caluculate angles of width and rotation ****/
         double Theta_w = M_PI / 2 * UserParams[Width] - M_PI / 4;
         double Theta_r = -(M_PI / 2 * UserParams[Rotation] - M_PI / 4);
 
+        /**** Apply stereo width and rotation ****/
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
             //Generate MS signals
@@ -348,8 +272,7 @@ void StereoPanAudioProcessor::processBufferSamples(juce::AudioBuffer<sampleType>
             rightChannel[i] = (midRotation - sideRotation);
         }
 
-        //Apply LPF to the channel opposite direction of rotation
-
+        /**** Apply LPF to the channel opposite direction of rotation ****/
         //Get the sampling rate
         double _samplerate = getSampleRate();
 
@@ -361,31 +284,32 @@ void StereoPanAudioProcessor::processBufferSamples(juce::AudioBuffer<sampleType>
         double _Q = 0.7;
 
         //Apply LPF
-        auto* cutChannel = rightChannel;
-        int cutChannelID = 1;
+        if (UserParams[LPFLink] != 1.0)
+        {
+            if (Theta_r > 0.0)
+            {
+                for (int i = 0; i < buffer.getNumSamples(); i++)
+                {
+                    LowPassR.reset();
+                    LowPassR.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
+                    rightChannel[i] = LowPassR.processSample(rightChannel[i]);
+                }
+            }
+            else if (Theta_r < 0.0)
+            {
+                for (int i = 0; i < buffer.getNumSamples(); i++)
+                {
+                    LowPassL.reset();
+                    LowPassL.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
+                    leftChannel[i] = LowPassL.processSample(leftChannel[i]);
+                }
+            }
+        }
 
-        if (Theta_r > 0.0)
-        {
-            cutChannel = rightChannel;
-            cutChannelID = 1;
-        }
-        else if (Theta_r < 0.0)
-        {
-            cutChannel = leftChannel;
-            cutChannelID = 0;
-        }
-        
-        if ((Theta_r != 0) && (UserParams[LPFLink] != 1))
-        {
-            IIRFilter[cutChannelID].SetParameter(_samplerate, _frequency, _Q);
-            IIRFilter[cutChannelID].DoProcess(cutChannel, buffer.getNumSamples());
-        }
-
-        //Post Gain
+        /**** Post Gain ****/
         buffer.applyGain(pow(UserParams[Gain], 2));
     }
 }
-*/
 
 bool StereoPanAudioProcessor::supportsDoublePrecisionProcessing() const
 {

@@ -82,5 +82,7 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoPanAudioProcessor)
 
     double UserParams[totalNumParam];
-    LPF IIRFilter[2];
+    template<class sampleType>
+    void processBlockWrapper(juce::AudioBuffer<sampleType>& buffer, juce::MidiBuffer& midiMessages);
+    juce::dsp::IIR::Filter<double> LowPassL, LowPassR;
 };
