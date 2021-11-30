@@ -14,22 +14,32 @@
 //==============================================================================
 StereoPanAudioProcessor::StereoPanAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
-                       )
+    : AudioProcessor(BusesProperties()
+#if ! JucePlugin_IsMidiEffect
+#if ! JucePlugin_IsSynth
+        .withInput("Input", juce::AudioChannelSet::stereo(), true)
 #endif
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true)
+#endif
+    )
+#endif
+    ,
+    parameters(*this, nullptr, juce::Identifier("StereoPan"),
+        {
+            std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 0.7f),
+            std::make_unique<juce::AudioParameterFloat>("width", "Width", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
+            std::make_unique<juce::AudioParameterFloat>("rotation", "Rotation", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
+            std::make_unique<juce::AudioParameterBool>("lpflink", "LPFLink", false),
+            std::make_unique<juce::AudioParameterFloat>("lpffreq", "LPFFreq", juce::NormalisableRange<float>(0.0f, 20000.0f),20000.0f),
+            std::make_unique<juce::AudioParameterChoice>("panrule", "PanRule", juce::StringArray("linear", "balanced", "sin3dB", "sin4_5dB", "sin6dB", "squareRoot3dB", "squareRoot4_5dB"))
+        })
 {
-    UserParams[MasterBypass] = 0.0;
-    UserParams[Gain] = 0.7;
-    UserParams[Width] = 0.5;
-    UserParams[Rotation] = 0.5;
-    UserParams[LPFLink] = 0.0;
-    UserParams[PanLaw] = 0.0;
+    gain = parameters.getRawParameterValue("gain");
+    width = parameters.getRawParameterValue("width");
+    rotation = parameters.getRawParameterValue("rotation");
+    lpfLink = parameters.getRawParameterValue("lpflink");
+    lpfFreq = parameters.getRawParameterValue("lpffreq");
+    panRule = parameters.getRawParameterValue("panrule");
 }
 
 StereoPanAudioProcessor::~StereoPanAudioProcessor()
@@ -37,80 +47,6 @@ StereoPanAudioProcessor::~StereoPanAudioProcessor()
 }
 
 //==============================================================================
-int StereoPanAudioProcessor::getNumParameters()
-{
-    return totalNumParam;
-}
-
-float StereoPanAudioProcessor::getParameter(int index)
-{
-    if (index >= 0 && index < totalNumParam)
-        return UserParams[index];
-    else return 0;
-}
-
-void StereoPanAudioProcessor::setParameter(int index, float value)
-{
-    if (index >= 0 && index < totalNumParam)
-        UserParams[index] = value;
-    else return;
-}
-
-const juce::String StereoPanAudioProcessor::getParameterName(int index)
-{
-    switch (index)
-    {
-    case MasterBypass:
-        return "Master Bypass";
-    case Gain:
-        return "Gain";
-    case Width:
-        return "Width";
-    case Rotation:
-        return "Rotation";
-    case LPFLink:
-        return "LPF Link";
-    case LPFFreq:
-        return "LPF Frequency";
-    case PanLaw:
-        return "Pan Law";
-    default:
-        return juce::String();
-    }
-}
-
-const juce::String StereoPanAudioProcessor::getParameterText(int index)
-{
-    switch (index)
-    {
-    case MasterBypass:
-        return UserParams[MasterBypass] == 1.0f ? "BYPASS" : "EFFECT";
-    case Gain:
-        return juce::String(juce::Decibels::gainToDecibels( pow(UserParams[Gain], 2)*2.0f ), 1)+"dB";
-    case Width:
-        return juce::String(int(UserParams[Width]*200.0f))+"%";
-    case Rotation:
-        return juce::String(int(UserParams[Rotation]*200.0f-100.0f))+"%";
-    case LPFLink:
-        return UserParams[LPFLink] == 1.0 ? "UNLINKED" : "LINKED";
-    case LPFFreq:
-        return juce::String(1.0f * pow(20000.0f, UserParams[LPFFreq]))+"Hz";
-    case PanLaw:
-        if (UserParams[PanLaw] <= 0.0f)
-            return "0.0dB";
-        else if (0.0f < UserParams[PanLaw] <= 0.5)
-            return"-3.0dB";
-        else if (0.5f < UserParams[PanLaw] < 1.0)
-            return "-4.5dB";
-        else if (UserParams[PanLaw] = 1.0)
-            return "-6.0dB";
-        else
-            return juce::String();
-    default:
-        return juce::String();
-    }
-}
-
 const juce::String StereoPanAudioProcessor::getName() const
 {
     return JucePlugin_Name;
@@ -232,28 +168,15 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
 
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-        //Bypass
-        if (UserParams[MasterBypass] == 1.0f)
-            return;
-
         /**** Get LR channels ****/
         auto* leftChannel = buffer.getWritePointer(0);
         auto* rightChannel = buffer.getWritePointer(1);
 
-        /**** Pan Law ****/
-        double _PanLaw = 0.0;
-        if (UserParams[PanLaw] <= 0.0)
-            _PanLaw = 0.0;
-        else if (0.0 < UserParams[PanLaw] <= 0.5)
-            _PanLaw = -3.0;
-        else if (0.5 < UserParams[PanLaw] < 1.0)
-            _PanLaw = -4.5;
-        else if (UserParams[PanLaw] = 1.0)
-            _PanLaw = -6.0;
-
         /**** Caluculate angles of width and rotation ****/
-        double Theta_w = M_PI / 2 * UserParams[Width] - M_PI / 4;
-        double Theta_r = -(M_PI / 2 * UserParams[Rotation] - M_PI / 4);
+        float valWidth = *width;
+        float valRotation = *rotation;
+        double Theta_w = M_PI / 2 * valWidth - M_PI / 4;
+        double Theta_r = -(M_PI / 2 * valRotation - M_PI / 4);
 
         /**** Apply stereo width and rotation ****/
         for (int i = 0; i < buffer.getNumSamples(); ++i)
@@ -272,19 +195,25 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
             rightChannel[i] = (midRotation - sideRotation);
         }
 
+        double Lgain = 1.0;
+        double Rgain = 1.0;
+
+        /**** Pan Law ****/
+        
         /**** Apply LPF to the channel opposite direction of rotation ****/
         //Get the sampling rate
         double _samplerate = getSampleRate();
 
         //Calculate the cutoff frequency
-        double frequencyLink = 1.0f * pow(20000.0f, UserParams[LPFFreq]);
-        double LPFBias = 2 * abs(0.5f - UserParams[Rotation]);
-        double _frequency = LPFBias * frequencyLink + (1 - LPFBias) * 20000.0f;
+        float valLPFFreq = *lpfFreq;
+        double LPFBias = 2 * abs(0.5f - valRotation);
+        double _frequency = LPFBias * valLPFFreq + (1 - LPFBias) * 20000.0f;
 
         double _Q = 0.7;
 
         //Apply LPF
-        if (UserParams[LPFLink] != 1.0)
+        bool isLPFBypass = *lpfLink;
+        if (isLPFBypass == true)
         {
             if (Theta_r > 0.0)
             {
@@ -307,7 +236,8 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
         }
 
         /**** Post Gain ****/
-        buffer.applyGain(pow(UserParams[Gain], 2));
+        float valGain = *gain;
+        buffer.applyGain(pow(valGain, 2));
     }
 }
 
@@ -324,89 +254,24 @@ bool StereoPanAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* StereoPanAudioProcessor::createEditor()
 {
-    return new StereoPanAudioProcessorEditor (*this);
+    return new StereoPanAudioProcessorEditor (*this, parameters);
 }
 
 //==============================================================================
 void StereoPanAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-    juce::XmlElement root("Root");
-    juce::XmlElement* el;
-
-    el = root.createNewChildElement("MasterBypass");
-    el->addTextElement(juce::String(UserParams[MasterBypass]));
-
-    el = root.createNewChildElement("Gain");
-    el->addTextElement(juce::String(UserParams[Gain]));
-    
-    el = root.createNewChildElement("Width");
-    el->addTextElement(juce::String(UserParams[Width]));
-    
-    el = root.createNewChildElement("Rotation");
-    el->addTextElement(juce::String(UserParams[Rotation]));
-
-    el = root.createNewChildElement("LPFLink");
-    el->addTextElement(juce::String(UserParams[LPFLink]));
-
-    el = root.createNewChildElement("PanLaw");
-    el->addTextElement(juce::String(UserParams[PanLaw]));
-
-    //el = root.createNewChildElement("SampleRate");
-    //el->addTextElement(juce::String(UserParams[SampleRate]));
-
-    copyXmlToBinary(root, destData);
+    auto state = parameters.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData);
 }
 
 void StereoPanAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
-    
-    //juce::XmlElement* pRoot = getXmlFromBinary(data, sizeInBytes);
-
-    //juce::ScopedPointer<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
-
     std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
 
     if (xmlState.get() != nullptr)
-    {
-        forEachXmlChildElement(*xmlState, pChild)
-        {
-            if (pChild->hasTagName("MasterBypass"))
-            {
-                juce::String text = pChild->getAllSubText();
-                setParameter(MasterBypass, text.getFloatValue());
-            }
-            else if (pChild->hasTagName("Gain"))
-            {
-                juce::String text = pChild->getAllSubText();
-                setParameter(Gain, text.getFloatValue());
-            }
-            else if (pChild->hasTagName("Width"))
-            {
-                juce::String text = pChild->getAllSubText();
-                setParameter(Width, text.getFloatValue());
-            }
-            else if (pChild->hasTagName("Rotation"))
-            {
-                juce::String text = pChild->getAllSubText();
-                setParameter(Rotation, text.getFloatValue());
-            }
-            else if (pChild->hasTagName("LPFLink"))
-            {
-                juce::String text = pChild->getAllSubText();
-                setParameter(LPFLink, text.getFloatValue());
-            }
-            else if (pChild->hasTagName("PanLaw"))
-            {
-                juce::String text = pChild->getAllSubText();
-                setParameter(PanLaw, text.getFloatValue());
-            }
-        }
-    }
+        if (xmlState->hasTagName(parameters.state.getType()))
+            parameters.replaceState(juce::ValueTree::fromXml(*xmlState));
 }
 
 //==============================================================================

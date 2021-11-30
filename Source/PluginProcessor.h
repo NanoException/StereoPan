@@ -9,7 +9,6 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "LPF.h"
 
 //==============================================================================
 /**
@@ -60,6 +59,7 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    /*
     enum Parameters {
         MasterBypass = 0,
         Gain,
@@ -70,6 +70,18 @@ public:
         PanLaw,
         totalNumParam
     };
+    
+    enum class panLawAlgos :int
+    {
+        ConstantPower,
+        ConstantGain,
+        Log3,
+        Log4_5,
+        Log6,
+        totalNumPan
+    };
+    */
+
     int getNumParameters() override;
     float getParameter(int index) override;
     void setParameter(int index, float value) override;
@@ -78,11 +90,21 @@ public:
 
 
 private:
-    //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoPanAudioProcessor)
+    //double UserParams[totalNumParam];
+    //panLawAlgos panAlgoList = panLawAlgos::ConstantPower;
 
-    double UserParams[totalNumParam];
+    juce::AudioProcessorValueTreeState parameters;
+    std::atomic<float>* gain = nullptr;
+    std::atomic<float>* width = nullptr;
+    std::atomic<float>* rotation = nullptr;
+    std::atomic<float>* lpfLink = nullptr;
+    std::atomic<float>* lpfFreq = nullptr;
+    std::atomic<float>* panRule = nullptr;
+
     template<class sampleType>
     void processBlockWrapper(juce::AudioBuffer<sampleType>& buffer, juce::MidiBuffer& midiMessages);
+
     juce::dsp::IIR::Filter<double> LowPassL, LowPassR;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoPanAudioProcessor)
 };

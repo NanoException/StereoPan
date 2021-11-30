@@ -17,7 +17,7 @@
 class StereoPanAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
-    StereoPanAudioProcessorEditor (StereoPanAudioProcessor&);
+    StereoPanAudioProcessorEditor (StereoPanAudioProcessor&, juce::AudioProcessorValueTreeState& vts);
     ~StereoPanAudioProcessorEditor() override;
 
     //==============================================================================
