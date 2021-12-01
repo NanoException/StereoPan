@@ -28,15 +28,19 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
         {
             std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 0.7f),
             std::make_unique<juce::AudioParameterFloat>("width", "Width", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
+            std::make_unique<juce::AudioParameterBool>("widthbypass", "widthBypass", false),
             std::make_unique<juce::AudioParameterFloat>("rotation", "Rotation", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
+            std::make_unique<juce::AudioParameterBool>("rotationbypass", "rotationBypass", false),
             std::make_unique<juce::AudioParameterBool>("lpflink", "LPFLink", false),
             std::make_unique<juce::AudioParameterFloat>("lpffreq", "LPFFreq", juce::NormalisableRange<float>(0.0f, 20000.0f),20000.0f),
-            std::make_unique<juce::AudioParameterChoice>("panrule", "PanRule", juce::StringArray("linear", "balanced", "sin3dB", "sin4_5dB", "sin6dB", "squareRoot3dB", "squareRoot4_5dB"))
+            std::make_unique<juce::AudioParameterChoice>("panrule", "PanRule", juce::StringArray("linear", "balanced", "sin3dB", "sin4_5dB", "sin6dB", "squareRoot3dB", "squareRoot4_5dB"),1)
         })
 {
     gain = parameters.getRawParameterValue("gain");
     width = parameters.getRawParameterValue("width");
+    widthBypass = parameters.getRawParameterValue("widthbypass");
     rotation = parameters.getRawParameterValue("rotation");
+    rotationBypass = parameters.getRawParameterValue("rotationbypass");
     lpfLink = parameters.getRawParameterValue("lpflink");
     lpfFreq = parameters.getRawParameterValue("lpffreq");
     panRule = parameters.getRawParameterValue("panrule");
@@ -175,8 +179,21 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
         /**** Caluculate angles of width and rotation ****/
         float valWidth = *width;
         float valRotation = *rotation;
+
+        float isWidthBypass = *widthBypass;
+        float isRotationBypass = *rotationBypass;
+
         double Theta_w = M_PI / 2 * valWidth - M_PI / 4;
+        if (isWidthBypass > 0.5f) //Bypass width
+        {
+            Theta_w = 0.0;
+        }
+
         double Theta_r = -(M_PI / 2 * valRotation - M_PI / 4);
+        if (isRotationBypass > 0.5f) //Bypass rotation
+        {
+            Theta_r = 0.0;
+        }
 
         /**** Apply stereo width and rotation ****/
         for (int i = 0; i < buffer.getNumSamples(); ++i)
@@ -213,7 +230,7 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
 
         //Apply LPF
         bool isLPFBypass = *lpfLink;
-        if (isLPFBypass == true)
+        if (isLPFBypass > 0.5f)
         {
             if (Theta_r > 0.0)
             {
@@ -249,7 +266,7 @@ bool StereoPanAudioProcessor::supportsDoublePrecisionProcessing() const
 //==============================================================================
 bool StereoPanAudioProcessor::hasEditor() const
 {
-    return false; // (change this to false if you choose to not supply an editor)
+    return true; // (change this to false if you choose to not supply an editor)
 }
 
 juce::AudioProcessorEditor* StereoPanAudioProcessor::createEditor()
