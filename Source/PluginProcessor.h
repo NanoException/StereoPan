@@ -61,6 +61,7 @@ public:
 
 private:
     juce::AudioProcessorValueTreeState parameters;
+    std::atomic<float>* masterBypass = nullptr;
     std::atomic<float>* gain = nullptr;
     std::atomic<float>* width = nullptr;
     std::atomic<float>* widthBypass = nullptr;

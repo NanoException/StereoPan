@@ -26,6 +26,7 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
     ,
     parameters(*this, nullptr, juce::Identifier("StereoPan"),
         {
+            std::make_unique<juce::AudioParameterBool>("masterbypass", "MasterBypass", false),
             std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 0.7f),
             std::make_unique<juce::AudioParameterFloat>("width", "Width", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
             std::make_unique<juce::AudioParameterBool>("widthbypass", "widthBypass", false),
@@ -36,6 +37,7 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
             std::make_unique<juce::AudioParameterChoice>("panrule", "PanRule", juce::StringArray("linear", "balanced", "sin3dB", "sin4_5dB", "sin6dB", "squareRoot3dB", "squareRoot4_5dB"),1)
         })
 {
+    masterBypass = parameters.getRawParameterValue("masterbypass");
     gain = parameters.getRawParameterValue("gain");
     width = parameters.getRawParameterValue("width");
     widthBypass = parameters.getRawParameterValue("widthbypass");
@@ -169,6 +171,8 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
+
+    if (*masterBypass != false) return;
 
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
