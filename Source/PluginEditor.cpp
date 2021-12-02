@@ -20,8 +20,23 @@ StereoPanAudioProcessorEditor::StereoPanAudioProcessorEditor (StereoPanAudioProc
     gainSlider.setSliderStyle(juce::Slider::LinearVertical);
     gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
 
+    addAndMakeVisible(widthBypassButton);
+    widthBypassAttachment.reset(new ButtonAttachment(valueTreeState, "widthbypass", widthBypassButton));
+
+    addAndMakeVisible(widthSlider);
+    widthAttachment.reset(new SliderAttachment(valueTreeState, "width", widthSlider));
+
+    addAndMakeVisible(rotationBypassButton);
+    rotationBypassAttachment.reset(new ButtonAttachment(valueTreeState, "rotationbypass", rotationBypassButton));
+
     addAndMakeVisible(rotationSlider);
     rotationAttachment.reset(new SliderAttachment(valueTreeState, "rotation", rotationSlider));
+
+    addAndMakeVisible(lpfLinkButton);
+    lpfLinkAttachment.reset(new ButtonAttachment(valueTreeState, "lpflink", lpfLinkButton));
+
+    addAndMakeVisible(lpfFreqSlider);
+    lpfFreqAttachment.reset(new SliderAttachment(valueTreeState, "lpffreq", lpfFreqSlider));
 
     setSize (700, 350);
 }
@@ -43,6 +58,10 @@ void StereoPanAudioProcessorEditor::resized()
     // subcomponents in your editor..
     
     gainSlider.setBounds(650, 25, 25, 275);
-
+    widthBypassButton.setBounds(250, 10, 50, 30);
+    widthSlider.setBounds(10, 10, 200, 30);
+    rotationBypassButton.setBounds(250, 40, 50, 30);
     rotationSlider.setBounds(10, 40, 200, 30);
+    lpfFreqSlider.setBounds(10, 70, 200, 30);
+    lpfLinkButton.setBounds(10, 100, 50, 30);
 }
