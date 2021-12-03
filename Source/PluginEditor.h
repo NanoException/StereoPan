@@ -22,6 +22,7 @@ public:
 
     typedef juce::AudioProcessorValueTreeState::SliderAttachment SliderAttachment;
     typedef juce::AudioProcessorValueTreeState::ButtonAttachment ButtonAttachment;
+    typedef juce::AudioProcessorValueTreeState::ComboBoxAttachment ComboBoxAttachment;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -37,16 +38,25 @@ private:
 
     juce::Slider gainSlider;
     std::unique_ptr<SliderAttachment> gainAttachment;
+
     juce::ToggleButton widthBypassButton{"Width"};
     std::unique_ptr<ButtonAttachment> widthBypassAttachment;
+
+    juce::ComboBox widthAlgosBox;
+    std::unique_ptr<ComboBoxAttachment> widthAlgosAttachment;
+    
     juce::Slider widthSlider;
     std::unique_ptr<SliderAttachment> widthAttachment;
-    juce::ToggleButton rotationBypassButton;
+    
+    juce::ToggleButton rotationBypassButton{"Rotation"};
     std::unique_ptr<ButtonAttachment> rotationBypassAttachment;
+    
     juce::Slider rotationSlider;
     std::unique_ptr<SliderAttachment> rotationAttachment;
+    
     juce::ToggleButton lpfLinkButton{"LPFLink"};
     std::unique_ptr<ButtonAttachment> lpfLinkAttachment;
+    
     juce::Slider lpfFreqSlider;
     std::unique_ptr<SliderAttachment> lpfFreqAttachment;
 

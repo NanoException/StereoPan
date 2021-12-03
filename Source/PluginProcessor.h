@@ -64,12 +64,12 @@ private:
     std::atomic<float>* masterBypass = nullptr;
     std::atomic<float>* gain = nullptr;
     std::atomic<float>* width = nullptr;
+    std::atomic<float>* widthAlgos = nullptr;
     std::atomic<float>* widthBypass = nullptr;
     std::atomic<float>* rotation = nullptr;
     std::atomic<float>* rotationBypass = nullptr;
     std::atomic<float>* lpfLink = nullptr;
     std::atomic<float>* lpfFreq = nullptr;
-    std::atomic<float>* panRule = nullptr;
 
     juce::dsp::IIR::Filter<double> LowPassL, LowPassR;
 

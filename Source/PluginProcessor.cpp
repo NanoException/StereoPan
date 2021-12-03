@@ -29,23 +29,23 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
             std::make_unique<juce::AudioParameterBool>("masterbypass", "MasterBypass", false),
             std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 0.7f),
             std::make_unique<juce::AudioParameterFloat>("width", "Width", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
+            std::make_unique<juce::AudioParameterChoice>("widthalgos", "widthAlgos", juce::StringArray("Sine", "Haas"), 0),
             std::make_unique<juce::AudioParameterBool>("widthbypass", "widthBypass", false),
             std::make_unique<juce::AudioParameterFloat>("rotation", "Rotation", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
             std::make_unique<juce::AudioParameterBool>("rotationbypass", "rotationBypass", false),
             std::make_unique<juce::AudioParameterBool>("lpflink", "LPFLink", false),
             std::make_unique<juce::AudioParameterFloat>("lpffreq", "LPFFreq", juce::NormalisableRange<float>(0.0f, 20000.0f),20000.0f),
-            std::make_unique<juce::AudioParameterChoice>("panrule", "PanRule", juce::StringArray("linear", "balanced", "sin3dB", "sin4_5dB", "sin6dB", "squareRoot3dB", "squareRoot4_5dB"),1)
         })
 {
     masterBypass = parameters.getRawParameterValue("masterbypass");
     gain = parameters.getRawParameterValue("gain");
     width = parameters.getRawParameterValue("width");
+    widthAlgos = parameters.getRawParameterValue("widthalgos");
     widthBypass = parameters.getRawParameterValue("widthbypass");
     rotation = parameters.getRawParameterValue("rotation");
     rotationBypass = parameters.getRawParameterValue("rotationbypass");
     lpfLink = parameters.getRawParameterValue("lpflink");
     lpfFreq = parameters.getRawParameterValue("lpffreq");
-    panRule = parameters.getRawParameterValue("panrule");
 }
 
 StereoPanAudioProcessor::~StereoPanAudioProcessor()
@@ -199,6 +199,11 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
             Theta_r = 0.0;
         }
 
+        //Get the sampling rate
+        double _samplerate = getSampleRate();
+
+        double prevMid[int(_samplerate / 100)] = {};
+
         /**** Apply stereo width and rotation ****/
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
@@ -206,8 +211,24 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
             auto midInput = (leftChannel[i] + rightChannel[i]);
             auto sideInput = (leftChannel[i] - rightChannel[i]);
             //Processing stereo width
-            auto midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
-            auto sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
+            int valWidthAlgos = *widthAlgos;
+
+            auto midWidth = midInput;
+            auto sideWidth = sideInput;
+
+            switch (valWidthAlgos)
+            {
+            case 0:
+                midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
+                sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
+                break;
+            case 1:
+                sideWidth = sideWidth + 10 * valWidth * prevMid[i];
+                prevMid[i] = midWidth;
+                break;
+            default:
+                break;
+            }
             //Processing rotation
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
@@ -216,15 +237,7 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
             rightChannel[i] = (midRotation - sideRotation);
         }
 
-        double Lgain = 1.0;
-        double Rgain = 1.0;
-
-        /**** Pan Law ****/
-        
         /**** Apply LPF to the channel opposite direction of rotation ****/
-        //Get the sampling rate
-        double _samplerate = getSampleRate();
-
         //Calculate the cutoff frequency
         float valLPFFreq = *lpfFreq;
         double LPFBias = 2 * abs(0.5f - valRotation);
