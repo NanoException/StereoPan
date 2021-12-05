@@ -174,8 +174,7 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
 
     if (*masterBypass != false) return;
 
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
+    for (int channel = 0; channel < totalNumInputChannels; ++channel){
         /**** Get LR channels ****/
         auto* leftChannel = buffer.getWritePointer(0);
         auto* rightChannel = buffer.getWritePointer(1);
@@ -188,16 +187,20 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
         float isRotationBypass = *rotationBypass;
 
         double Theta_w = M_PI / 2 * valWidth - M_PI / 4;
-        if (isWidthBypass > 0.5f) //Bypass width
-        {
+        if (isWidthBypass > 0.5f){  //Bypass width
             Theta_w = 0.0;
         }
 
         double Theta_r = -(M_PI / 2 * valRotation - M_PI / 4);
-        if (isRotationBypass > 0.5f) //Bypass rotation
-        {
+        if (isRotationBypass > 0.5f){   //Bypass rotation
             Theta_r = 0.0;
         }
+
+        float valLPFFreq = *lpfFreq;
+        double LPFBias = 2 * abs(0.5f - valRotation);
+        double _frequency = LPFBias * valLPFFreq + (1 - LPFBias) * 20000.0f;
+        double _Q = 0.7;
+        bool isLPFBypass = *lpfLink;
 
         //Get the sampling rate
         double _samplerate = getSampleRate();
@@ -205,8 +208,7 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
         double prevMid[int(_samplerate / 100)] = {};
 
         /**** Apply stereo width and rotation ****/
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-        {
+        for (int i = 0; i < buffer.getNumSamples(); ++i){
             //Generate MS signals
             auto midInput = (leftChannel[i] + rightChannel[i]);
             auto sideInput = (leftChannel[i] - rightChannel[i]);
@@ -216,8 +218,7 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
             auto midWidth = midInput;
             auto sideWidth = sideInput;
 
-            switch (valWidthAlgos)
-            {
+            switch (valWidthAlgos){
             case 0:
                 midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
                 sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
@@ -235,33 +236,14 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
             //Revert to LR signals
             leftChannel[i] = (midRotation + sideRotation);
             rightChannel[i] = (midRotation - sideRotation);
-        }
-
-        /**** Apply LPF to the channel opposite direction of rotation ****/
-        //Calculate the cutoff frequency
-        float valLPFFreq = *lpfFreq;
-        double LPFBias = 2 * abs(0.5f - valRotation);
-        double _frequency = LPFBias * valLPFFreq + (1 - LPFBias) * 20000.0f;
-
-        double _Q = 0.7;
-
-        //Apply LPF
-        bool isLPFBypass = *lpfLink;
-        if (isLPFBypass > 0.5f)
-        {
-            if (Theta_r > 0.0)
-            {
-                for (int i = 0; i < buffer.getNumSamples(); i++)
-                {
+            //Apply LPFLink
+            if (isLPFBypass > 0.5f){
+                if (Theta_r > 0.0){
                     LowPassR.reset();
                     LowPassR.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
                     rightChannel[i] = LowPassR.processSample(rightChannel[i]);
                 }
-            }
-            else if (Theta_r < 0.0)
-            {
-                for (int i = 0; i < buffer.getNumSamples(); i++)
-                {
+                else if (Theta_r < 0.0){
                     LowPassL.reset();
                     LowPassL.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
                     leftChannel[i] = LowPassL.processSample(leftChannel[i]);
