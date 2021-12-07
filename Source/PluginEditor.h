@@ -36,27 +36,34 @@ private:
 
     juce::AudioProcessorValueTreeState& valueTreeState;
 
+    juce::Label mainTitle;
+
+    juce::Label gainTitle;
     juce::Slider gainSlider;
     std::unique_ptr<SliderAttachment> gainAttachment;
 
     juce::ToggleButton widthBypassButton{"Width"};
     std::unique_ptr<ButtonAttachment> widthBypassAttachment;
 
+    /*
     juce::ComboBox widthAlgosBox;
     std::unique_ptr<ComboBoxAttachment> widthAlgosAttachment;
-    
+    */
+    juce::Label  widthTitle;
     juce::Slider widthSlider;
     std::unique_ptr<SliderAttachment> widthAttachment;
     
     juce::ToggleButton rotationBypassButton{"Rotation"};
     std::unique_ptr<ButtonAttachment> rotationBypassAttachment;
     
+    juce::Label rotationTitle;
     juce::Slider rotationSlider;
     std::unique_ptr<SliderAttachment> rotationAttachment;
     
     juce::ToggleButton lpfLinkButton{"LPFLink"};
     std::unique_ptr<ButtonAttachment> lpfLinkAttachment;
     
+    juce::Label lpfTitle;
     juce::Slider lpfFreqSlider;
     std::unique_ptr<SliderAttachment> lpfFreqAttachment;
 

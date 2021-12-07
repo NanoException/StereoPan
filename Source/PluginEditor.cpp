@@ -13,36 +13,62 @@
 StereoPanAudioProcessorEditor::StereoPanAudioProcessorEditor (StereoPanAudioProcessor& p, juce::AudioProcessorValueTreeState & vts)
     : AudioProcessorEditor (&p), valueTreeState(vts), audioProcessor(p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
+    addAndMakeVisible(mainTitle);
+    mainTitle.setText("LPanner", juce::dontSendNotification);
+    mainTitle.setFont(juce::Font(20.0f, juce::Font::bold));
+    mainTitle.setJustificationType(juce::Justification::centred);
+
+    addAndMakeVisible(gainTitle);
+    gainTitle.setText("Gain", juce::dontSendNotification);
+    gainTitle.setFont(juce::Font(16.0f, juce::Font::bold));
+    gainTitle.setJustificationType(juce::Justification::centred);
+
     addAndMakeVisible(gainSlider);
     gainAttachment.reset(new SliderAttachment(valueTreeState, "gain", gainSlider));
-    gainSlider.setSliderStyle(juce::Slider::LinearVertical);
-    gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
+    gainSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 40);
 
     addAndMakeVisible(widthBypassButton);
     widthBypassAttachment.reset(new ButtonAttachment(valueTreeState, "widthbypass", widthBypassButton));
 
-    addAndMakeVisible(widthAlgosBox);
-    widthAlgosAttachment.reset(new ComboBoxAttachment(valueTreeState, "widthalgos", widthAlgosBox));
+    addAndMakeVisible(widthTitle);
+    widthTitle.setText("Width", juce::dontSendNotification);
+    widthTitle.setFont(juce::Font(16.0f, juce::Font::bold));
+    widthTitle.setJustificationType(juce::Justification::centred);
 
     addAndMakeVisible(widthSlider);
+    widthSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    widthSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 40);
     widthAttachment.reset(new SliderAttachment(valueTreeState, "width", widthSlider));
-    widthAlgosBox.addItemList(juce::StringArray("Sine", "Haas"), 1);
+    //widthAlgosBox.addItemList(juce::StringArray("Sine", "Haas"), 1);
 
     addAndMakeVisible(rotationBypassButton);
     rotationBypassAttachment.reset(new ButtonAttachment(valueTreeState, "rotationbypass", rotationBypassButton));
 
+    addAndMakeVisible(rotationTitle);
+    rotationTitle.setText("Rotation", juce::dontSendNotification);
+    rotationTitle.setFont(juce::Font(16.0f, juce::Font::bold));
+    rotationTitle.setJustificationType(juce::Justification::centred);
+
     addAndMakeVisible(rotationSlider);
+    rotationSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    rotationSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 40);
     rotationAttachment.reset(new SliderAttachment(valueTreeState, "rotation", rotationSlider));
 
     addAndMakeVisible(lpfLinkButton);
     lpfLinkAttachment.reset(new ButtonAttachment(valueTreeState, "lpflink", lpfLinkButton));
 
+    addAndMakeVisible(lpfTitle);
+    lpfTitle.setText("LPF", juce::dontSendNotification);
+    lpfTitle.setFont(juce::Font(16.0f, juce::Font::bold));
+    lpfTitle.setJustificationType(juce::Justification::centred);
+
     addAndMakeVisible(lpfFreqSlider);
+    lpfFreqSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    lpfFreqSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 40);
     lpfFreqAttachment.reset(new SliderAttachment(valueTreeState, "lpffreq", lpfFreqSlider));
 
-    setSize (700, 350);
+    setSize (260,580);
 }
 
 StereoPanAudioProcessorEditor::~StereoPanAudioProcessorEditor()
@@ -61,12 +87,19 @@ void StereoPanAudioProcessorEditor::resized()
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
     
-    gainSlider.setBounds(650, 25, 25, 275);
-    widthBypassButton.setBounds(250, 10, 100, 30);
-    widthAlgosBox.setBounds(350, 10, 100, 30);
-    widthSlider.setBounds(10, 10, 200, 30);
-    rotationBypassButton.setBounds(250, 40, 100, 30);
-    rotationSlider.setBounds(10, 40, 200, 30);
-    lpfFreqSlider.setBounds(10, 70, 200, 30);
-    lpfLinkButton.setBounds(250, 70, 100, 30);
+    int knobSide = 150;
+
+    mainTitle.setBounds(35, 20, 80, 80);
+
+    widthTitle.setBounds(35, 75, 80, 80);
+    widthSlider.setBounds(0, 60, knobSide, knobSide);
+
+    rotationTitle.setBounds(145, 195, 80, 80);
+    rotationSlider.setBounds(110, 180, knobSide, knobSide);
+
+    lpfTitle.setBounds(35, 315, 80, 80);
+    lpfFreqSlider.setBounds(0, 300, knobSide, knobSide);
+
+    gainTitle.setBounds(145, 435, 80, 80);
+    gainSlider.setBounds(110, 420, knobSide, knobSide);
 }
