@@ -64,7 +64,6 @@ private:
     std::atomic<float>* masterBypass = nullptr;
     std::atomic<float>* gain = nullptr;
     std::atomic<float>* width = nullptr;
-    std::atomic<float>* widthAlgos = nullptr;
     std::atomic<float>* widthBypass = nullptr;
     std::atomic<float>* rotation = nullptr;
     std::atomic<float>* rotationBypass = nullptr;

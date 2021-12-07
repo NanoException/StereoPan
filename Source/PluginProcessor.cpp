@@ -28,19 +28,19 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
         {
             std::make_unique<juce::AudioParameterBool>("masterbypass", "MasterBypass", false),
             std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 0.7f),
-            std::make_unique<juce::AudioParameterFloat>("width", "Width", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
+            std::make_unique<juce::AudioParameterFloat>("width", "Width", juce::NormalisableRange<float>(0.0f, 100.0f), 50.0f),
             std::make_unique<juce::AudioParameterChoice>("widthalgos", "widthAlgos", juce::StringArray("Sine", "Haas"), 0),
             std::make_unique<juce::AudioParameterBool>("widthbypass", "widthBypass", false),
-            std::make_unique<juce::AudioParameterFloat>("rotation", "Rotation", juce::NormalisableRange<float>(0.0f, 1.0f), 0.5f),
+            std::make_unique<juce::AudioParameterFloat>("rotation", "Rotation", juce::NormalisableRange<float>(-100.0f, 100.0f), 0.0f),
             std::make_unique<juce::AudioParameterBool>("rotationbypass", "rotationBypass", false),
             std::make_unique<juce::AudioParameterBool>("lpflink", "LPFLink", false),
-            std::make_unique<juce::AudioParameterFloat>("lpffreq", "LPFFreq", juce::NormalisableRange<float>(0.0f, 20000.0f),20000.0f),
+            std::make_unique<juce::AudioParameterFloat>("lpffreq", "LPFFreq", juce::NormalisableRange<float>(1.0f, 20000.0f),20000.0f),
         })
 {
     masterBypass = parameters.getRawParameterValue("masterbypass");
     gain = parameters.getRawParameterValue("gain");
     width = parameters.getRawParameterValue("width");
-    widthAlgos = parameters.getRawParameterValue("widthalgos");
+    //widthAlgos = parameters.getRawParameterValue("widthalgos");
     widthBypass = parameters.getRawParameterValue("widthbypass");
     rotation = parameters.getRawParameterValue("rotation");
     rotationBypass = parameters.getRawParameterValue("rotationbypass");
@@ -186,18 +186,18 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
         float isWidthBypass = *widthBypass;
         float isRotationBypass = *rotationBypass;
 
-        double Theta_w = M_PI / 2 * valWidth - M_PI / 4;
+        double Theta_w = M_PI / 200 * (valWidth - 50);
         if (isWidthBypass > 0.5f){  //Bypass width
             Theta_w = 0.0;
         }
 
-        double Theta_r = -(M_PI / 2 * valRotation - M_PI / 4);
+        double Theta_r = -M_PI / 400 * valRotation;
         if (isRotationBypass > 0.5f){   //Bypass rotation
             Theta_r = 0.0;
         }
 
         float valLPFFreq = *lpfFreq;
-        double LPFBias = 2 * abs(0.5f - valRotation);
+        double LPFBias = abs(valRotation) / 100;
         double _frequency = LPFBias * valLPFFreq + (1 - LPFBias) * 20000.0f;
         double _Q = 0.7;
         bool isLPFBypass = *lpfLink;
@@ -205,31 +205,15 @@ void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>&
         //Get the sampling rate
         double _samplerate = getSampleRate();
 
-        double prevMid[int(_samplerate / 100)] = {};
-
         /**** Apply stereo width and rotation ****/
         for (int i = 0; i < buffer.getNumSamples(); ++i){
             //Generate MS signals
             auto midInput = (leftChannel[i] + rightChannel[i]);
             auto sideInput = (leftChannel[i] - rightChannel[i]);
-            //Processing stereo width
-            int valWidthAlgos = *widthAlgos;
 
-            auto midWidth = midInput;
-            auto sideWidth = sideInput;
+            auto midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
+            auto sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
 
-            switch (valWidthAlgos){
-            case 0:
-                midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
-                sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
-                break;
-            case 1:
-                sideWidth = sideWidth + 10 * valWidth * prevMid[i];
-                prevMid[i] = midWidth;
-                break;
-            default:
-                break;
-            }
             //Processing rotation
             auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
             auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
