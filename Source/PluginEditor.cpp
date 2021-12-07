@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "BinaryData.h"
 
 //==============================================================================
 StereoPanAudioProcessorEditor::StereoPanAudioProcessorEditor (StereoPanAudioProcessor& p, juce::AudioProcessorValueTreeState & vts)
@@ -15,8 +16,16 @@ StereoPanAudioProcessorEditor::StereoPanAudioProcessorEditor (StereoPanAudioProc
 {
     addAndMakeVisible(mainTitle);
     mainTitle.setText("LPanner", juce::dontSendNotification);
-    mainTitle.setFont(juce::Font(20.0f, juce::Font::bold));
-    mainTitle.setJustificationType(juce::Justification::centred);
+    mainTitle.setFont(juce::Font(30.0f, juce::Font::bold));
+    //mainTitle.setJustificationType(juce::Justification::centred);
+
+    addAndMakeVisible(bypassButton);
+    bypassButton.setImages(false, true, true,
+        juce::ImageCache::getFromMemory(BinaryData::powerOn_png, BinaryData::powerOn_pngSize), 1.0f, juce::Colour::Colour(0.f, 0.f, 0.f, 0.f),
+        juce::ImageCache::getFromMemory(BinaryData::powerOn_png, BinaryData::powerOn_pngSize), 1.0f, juce::Colour::Colour(0.f, 0.f, 0.f, 0.f),
+        juce::ImageCache::getFromMemory(BinaryData::powerOff_png, BinaryData::powerOff_pngSize), 1.0f, juce::Colour::Colour(0.f, 0.f, 0.f, 0.f));
+    bypassButton.setClickingTogglesState(true);
+    bypassAttachment.reset(new ButtonAttachment(valueTreeState, "masterbypass", bypassButton));
 
     addAndMakeVisible(gainTitle);
     gainTitle.setText("Gain", juce::dontSendNotification);
@@ -40,7 +49,6 @@ StereoPanAudioProcessorEditor::StereoPanAudioProcessorEditor (StereoPanAudioProc
     widthSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     widthSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 40);
     widthAttachment.reset(new SliderAttachment(valueTreeState, "width", widthSlider));
-    //widthAlgosBox.addItemList(juce::StringArray("Sine", "Haas"), 1);
 
     addAndMakeVisible(rotationBypassButton);
     rotationBypassAttachment.reset(new ButtonAttachment(valueTreeState, "rotationbypass", rotationBypassButton));
@@ -55,9 +63,6 @@ StereoPanAudioProcessorEditor::StereoPanAudioProcessorEditor (StereoPanAudioProc
     rotationSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 40);
     rotationAttachment.reset(new SliderAttachment(valueTreeState, "rotation", rotationSlider));
 
-    addAndMakeVisible(lpfLinkButton);
-    lpfLinkAttachment.reset(new ButtonAttachment(valueTreeState, "lpflink", lpfLinkButton));
-
     addAndMakeVisible(lpfTitle);
     lpfTitle.setText("LPF", juce::dontSendNotification);
     lpfTitle.setFont(juce::Font(16.0f, juce::Font::bold));
@@ -67,6 +72,10 @@ StereoPanAudioProcessorEditor::StereoPanAudioProcessorEditor (StereoPanAudioProc
     lpfFreqSlider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     lpfFreqSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 40);
     lpfFreqAttachment.reset(new SliderAttachment(valueTreeState, "lpffreq", lpfFreqSlider));
+
+    addAndMakeVisible(lpfLinkButton);
+    lpfLinkButton.setClickingTogglesState(true);
+    lpfLinkAttachment.reset(new ButtonAttachment(valueTreeState, "lpflink", lpfLinkButton));
 
     setSize (260,580);
 }
@@ -89,7 +98,8 @@ void StereoPanAudioProcessorEditor::resized()
     
     int knobSide = 150;
 
-    mainTitle.setBounds(35, 20, 80, 80);
+    mainTitle.setBounds(10, 5, 140, 40);
+    bypassButton.setBounds(140, 15, 25, 25);
 
     widthTitle.setBounds(35, 75, 80, 80);
     widthSlider.setBounds(0, 60, knobSide, knobSide);
@@ -99,6 +109,8 @@ void StereoPanAudioProcessorEditor::resized()
 
     lpfTitle.setBounds(35, 315, 80, 80);
     lpfFreqSlider.setBounds(0, 300, knobSide, knobSide);
+
+    lpfLinkButton.setBounds(0, 418, 25, 25);
 
     gainTitle.setBounds(145, 435, 80, 80);
     gainSlider.setBounds(110, 420, knobSide, knobSide);

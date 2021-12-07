@@ -38,6 +38,9 @@ private:
 
     juce::Label mainTitle;
 
+    juce::ImageButton bypassButton;
+    std::unique_ptr<ButtonAttachment> bypassAttachment;
+
     juce::Label gainTitle;
     juce::Slider gainSlider;
     std::unique_ptr<SliderAttachment> gainAttachment;
@@ -60,7 +63,7 @@ private:
     juce::Slider rotationSlider;
     std::unique_ptr<SliderAttachment> rotationAttachment;
     
-    juce::ToggleButton lpfLinkButton{"LPFLink"};
+    juce::ToggleButton lpfLinkButton;
     std::unique_ptr<ButtonAttachment> lpfLinkAttachment;
     
     juce::Label lpfTitle;

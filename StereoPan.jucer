@@ -6,6 +6,12 @@
               companyName="liquid1224" companyWebsite="https://liquid1224.net">
   <MAINGROUP id="DFf4IY" name="LPanner">
     <GROUP id="{48748E83-E1FF-1D5C-C73E-3A0A8FF4B8F0}" name="Source">
+      <FILE id="Yg81CX" name="BinaryData.cpp" compile="1" resource="0" file="JuceLibraryCode/BinaryData.cpp"/>
+      <FILE id="Bbm5Kk" name="BinaryData.h" compile="0" resource="0" file="JuceLibraryCode/BinaryData.h"/>
+      <GROUP id="{DB273AEE-70DE-2077-7CE6-64741A57A252}" name="Image">
+        <FILE id="wgsXJ9" name="powerOff.png" compile="0" resource="1" file="Image/powerOff.png"/>
+        <FILE id="q0dsWc" name="powerOn.png" compile="0" resource="1" file="Image/powerOn.png"/>
+      </GROUP>
       <FILE id="joNcA3" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="s6QmWY" name="PluginProcessor.h" compile="0" resource="0"
