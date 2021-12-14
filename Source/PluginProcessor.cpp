@@ -27,7 +27,7 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
     parameters(*this, nullptr, juce::Identifier("StereoPan"),
         {
             std::make_unique<juce::AudioParameterBool>("masterbypass", "MasterBypass", false),
-            std::make_unique<juce::AudioParameterFloat>("gain", "Gain", 0.0f, 1.0f, 0.7f),
+            std::make_unique<juce::AudioParameterFloat>("gain", "Gain", -20.0f, 10.0f, 0.0f),
             std::make_unique<juce::AudioParameterFloat>("width", "Width", juce::NormalisableRange<float>(0.0f, 100.0f), 50.0f),
             std::make_unique<juce::AudioParameterChoice>("widthalgos", "widthAlgos", juce::StringArray("Sine", "Haas"), 0),
             std::make_unique<juce::AudioParameterBool>("widthbypass", "widthBypass", false),
@@ -40,7 +40,7 @@ StereoPanAudioProcessor::StereoPanAudioProcessor()
     masterBypass = parameters.getRawParameterValue("masterbypass");
     gain = parameters.getRawParameterValue("gain");
     width = parameters.getRawParameterValue("width");
-    //widthAlgos = parameters.getRawParameterValue("widthalgos");
+    widthAlgos = parameters.getRawParameterValue("widthalgos");
     widthBypass = parameters.getRawParameterValue("widthbypass");
     rotation = parameters.getRawParameterValue("rotation");
     rotationBypass = parameters.getRawParameterValue("rotationbypass");
@@ -117,8 +117,18 @@ void StereoPanAudioProcessor::changeProgramName (int index, const juce::String& 
 //==============================================================================
 void StereoPanAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate = sampleRate;
+    spec.maximumBlockSize = samplesPerBlock * 2;
+    spec.numChannels = getTotalNumOutputChannels();
+
+    history.resize(spec.sampleRate / 100);
+    history2.resize(spec.sampleRate / 350);
+
+    LowPassL.prepare(spec);
+    LowPassL.reset();
+    LowPassR.prepare(spec);
+    LowPassR.reset();
 }
 
 void StereoPanAudioProcessor::releaseResources()
@@ -155,90 +165,293 @@ bool StereoPanAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 
 void StereoPanAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    processBlockWrapper(buffer, midiMessages);
+    juce::ScopedNoDenormals noDenormals;
+
+    //master bypass
+    if (*masterBypass != false) return;
+
+    //prepare block and context
+    auto block = juce::dsp::AudioBlock<double>(buffer);
+    auto context = juce::dsp::ProcessContextReplacing<double>(block);
+
+    auto& inBlock = context.getInputBlock();
+    auto& outBlock = context.getOutputBlock();
+
+    auto oversampledBlock = oversamplingProcessorDouble.processSamplesUp(inBlock);
+    auto oversampledContext = juce::dsp::ProcessContextReplacing<double>(oversampledBlock);
+
+    auto& oversampledInBlock = oversampledContext.getInputBlock();
+    auto& oversampledoutBlock = oversampledContext.getOutputBlock();
+
+    auto leftInBlock = oversampledInBlock.getSingleChannelBlock(0);
+    auto rightInBlock = oversampledInBlock.getSingleChannelBlock(1);
+    auto leftOutBlock = oversampledoutBlock.getSingleChannelBlock(0);
+    auto rightOutBlock = oversampledoutBlock.getSingleChannelBlock(1);
+
+    //get parameters
+    double _samplerate = getSampleRate();
+
+    float isWidthBypass = *widthBypass;
+    float isRotationBypass = *rotationBypass;
+
+    float valWidthAlgos = *widthAlgos;
+
+    float valWidth = *width;
+    float valRotation = *rotation;
+
+    double Theta_w = M_PI / 200 * (valWidth - 50);
+    if (isWidthBypass > 0.5f) {  //Bypass width
+        Theta_w = 0.0;
+    }
+
+    double Theta_r = -M_PI / 400 * valRotation;
+    if (isRotationBypass > 0.5f) {   //Bypass rotation
+        Theta_r = 0.0;
+    }
+
+    float valLPFFreq = *lpfFreq;
+    double LPFBias = abs(valRotation) / 100;
+    double _frequency = LPFBias * valLPFFreq + (1 - LPFBias) * 20000.0f;
+    double _Q = 0.7;
+    bool isLPFBypass = *lpfLink;
+
+    float valPostGain = *gain;
+
+    if (valWidthAlgos < 1. / 2.)
+    {
+        for (int i = 0; i < inBlock.getNumSamples(); ++i)
+        {
+            auto midInput = (leftInBlock.getSample(0, i) + rightInBlock.getSample(0, i)) / sqrt(2);
+            auto sideInput = (leftInBlock.getSample(0, i) - rightInBlock.getSample(0, i)) / sqrt(2);
+            auto midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
+            auto sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
+
+            auto midRotation = midInput * cos(Theta_r) - sideInput * sin(Theta_r);
+            auto sideRotation = midInput * sin(Theta_r) + sideInput * cos(Theta_r);
+
+            double leftRotation = (midRotation + sideRotation) / sqrt(2);
+            double rightRotation = (midRotation - sideRotation) / sqrt(2);
+
+            if (isLPFBypass < 0.5f)
+            {
+                if (Theta_r > 0.0)
+                {
+                    LowPassR.reset();
+                    LowPassR.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
+                    float rightFiltered = LowPassR.processSample(rightRotation);
+                    rightOutBlock.setSample(0, i, rightFiltered);
+                }
+                else if (Theta_r < 0.0)
+                {
+                    LowPassL.reset();
+                    LowPassL.coefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(_samplerate, _frequency, _Q);
+                    float leftFiltered = LowPassL.processSample(leftRotation);
+                    leftOutBlock.setSample(0, i, leftFiltered);
+                }
+            }
+            else
+            {
+                leftOutBlock.setSample(0, i, leftRotation);
+                rightOutBlock.setSample(0, i, rightRotation);
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < inBlock.getNumSamples(); ++i)
+        {
+            double p = valWidth / 100.;
+            auto midInput = (leftInBlock.getSample(0, i) + rightInBlock.getSample(0, i)) / sqrt(2);
+            auto sideInput = (leftInBlock.getSample(0, i) - rightInBlock.getSample(0, i)) / sqrt(2);
+            auto midWidth = midInput;
+            double midDelay = history[pos];
+            double midDelay2 = history2[pos2];
+
+            double leftWidth = (midInput + sideInput) / sqrt(2) + p * midDelay;
+            double rightWidth = (midInput - sideInput) / sqrt(2) + p * midDelay2;
+
+            history[pos] = midWidth;
+            history2[pos2] = midWidth;
+            pos = (pos + 1) % history.size();
+            pos2 = (pos2 + 1) % history2.size();
+
+            double leftRotation = leftWidth * cos(Theta_r) - rightWidth * sin(Theta_r);
+            double rightRotation = leftWidth * sin(Theta_r) + rightWidth * cos(Theta_r);
+
+            if (isLPFBypass < 0.5f)
+            {
+                if (Theta_r > 0.0)
+                {
+                    LowPassR.reset();
+                    LowPassR.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
+                    float rightFiltered = LowPassR.processSample(rightRotation);
+                    rightOutBlock.setSample(0, i, rightFiltered);
+                }
+                else if (Theta_r < 0.0)
+                {
+                    LowPassL.reset();
+                    LowPassL.coefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(_samplerate, _frequency, _Q);
+                    float leftFiltered = LowPassL.processSample(leftRotation);
+                    leftOutBlock.setSample(0, i, leftFiltered);
+                }
+            }
+            else
+            {
+                leftOutBlock.setSample(0, i, leftRotation);
+                rightOutBlock.setSample(0, i, rightRotation);
+            }
+        }
+    }
+    postGainProcessor.setGainDecibels(valPostGain);
+    postGainProcessor.process(oversampledContext);
+
+    oversamplingProcessorDouble.processSamplesDown(outBlock);
 }
 
 
 void StereoPanAudioProcessor::processBlock (juce::AudioBuffer<double>& buffer, juce::MidiBuffer& midiMessages)
 {
-    processBlockWrapper(buffer, midiMessages);
-}
-
-
-template <class sampleType>
-void StereoPanAudioProcessor::processBlockWrapper(juce::AudioBuffer<sampleType>& buffer, juce::MidiBuffer& midiMessages)
-{
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
+    //master bypass
     if (*masterBypass != false) return;
 
-    for (int channel = 0; channel < totalNumInputChannels; ++channel){
-        /**** Get LR channels ****/
-        auto* leftChannel = buffer.getWritePointer(0);
-        auto* rightChannel = buffer.getWritePointer(1);
+    //prepare block and context
+    auto block = juce::dsp::AudioBlock<double>(buffer);
+    auto context = juce::dsp::ProcessContextReplacing<double>(block);
 
-        /**** Caluculate angles of width and rotation ****/
-        float valWidth = *width;
-        float valRotation = *rotation;
+    auto& inBlock = context.getInputBlock();
+    auto& outBlock = context.getOutputBlock();
 
-        float isWidthBypass = *widthBypass;
-        float isRotationBypass = *rotationBypass;
+    auto oversampledBlock = oversamplingProcessorDouble.processSamplesUp(inBlock);
+    auto oversampledContext = juce::dsp::ProcessContextReplacing<double>(oversampledBlock);
 
-        double Theta_w = M_PI / 200 * (valWidth - 50);
-        if (isWidthBypass > 0.5f){  //Bypass width
-            Theta_w = 0.0;
-        }
+    auto& oversampledInBlock = oversampledContext.getInputBlock();
+    auto& oversampledoutBlock = oversampledContext.getOutputBlock();
 
-        double Theta_r = -M_PI / 400 * valRotation;
-        if (isRotationBypass > 0.5f){   //Bypass rotation
-            Theta_r = 0.0;
-        }
+    auto leftInBlock = oversampledInBlock.getSingleChannelBlock(0);
+    auto rightInBlock = oversampledInBlock.getSingleChannelBlock(1);
+    auto leftOutBlock = oversampledoutBlock.getSingleChannelBlock(0);
+    auto rightOutBlock = oversampledoutBlock.getSingleChannelBlock(1);
 
-        float valLPFFreq = *lpfFreq;
-        double LPFBias = abs(valRotation) / 100;
-        double _frequency = LPFBias * valLPFFreq + (1 - LPFBias) * 20000.0f;
-        double _Q = 0.7;
-        bool isLPFBypass = *lpfLink;
+    //get parameters
+    double _samplerate = getSampleRate();
 
-        //Get the sampling rate
-        double _samplerate = getSampleRate();
+    float isWidthBypass = *widthBypass;
+    float isRotationBypass = *rotationBypass;
 
-        /**** Apply stereo width and rotation ****/
-        for (int i = 0; i < buffer.getNumSamples(); ++i){
-            //Generate MS signals
-            auto midInput = (leftChannel[i] + rightChannel[i]);
-            auto sideInput = (leftChannel[i] - rightChannel[i]);
+    float valWidthAlgos = *widthAlgos;
 
+    float valWidth = *width;
+    float valRotation = *rotation;
+
+    double Theta_w = M_PI / 200 * (valWidth - 50);
+    if (isWidthBypass > 0.5f) {  //Bypass width
+        Theta_w = 0.0;
+    }
+
+    double Theta_r = -M_PI / 400 * valRotation;
+    if (isRotationBypass > 0.5f) {   //Bypass rotation
+        Theta_r = 0.0;
+    }
+
+    float valLPFFreq = *lpfFreq;
+    double LPFBias = abs(valRotation) / 100;
+    double _frequency = LPFBias * valLPFFreq + (1 - LPFBias) * 20000.0f;
+    double _Q = 0.7;
+    bool isLPFBypass = *lpfLink;
+
+    float valPostGain = *gain;
+
+    if (valWidthAlgos < 1. / 2.)
+    {
+        for (int i = 0; i < inBlock.getNumSamples(); ++i)
+        {
+            auto midInput = (leftInBlock.getSample(0, i) + rightInBlock.getSample(0, i)) / sqrt(2);
+            auto sideInput = (leftInBlock.getSample(0, i) - rightInBlock.getSample(0, i)) / sqrt(2);
             auto midWidth = midInput * sin(M_PI / 4 - Theta_w) * sqrt(2);
             auto sideWidth = sideInput * cos(M_PI / 4 - Theta_w) * sqrt(2);
 
-            //Processing rotation
-            auto midRotation = midWidth * cos(Theta_r) - sideWidth * sin(Theta_r);
-            auto sideRotation = midWidth * sin(Theta_r) + sideWidth * cos(Theta_r);
-            //Revert to LR signals
-            leftChannel[i] = (midRotation + sideRotation);
-            rightChannel[i] = (midRotation - sideRotation);
-            //Apply LPFLink
-            if (isLPFBypass > 0.5f){
-                if (Theta_r > 0.0){
+            auto midRotation = midInput * cos(Theta_r) - sideInput * sin(Theta_r);
+            auto sideRotation = midInput * sin(Theta_r) + sideInput * cos(Theta_r);
+
+            double leftRotation = (midRotation + sideRotation) / sqrt(2);
+            double rightRotation = (midRotation - sideRotation) / sqrt(2);
+
+            if (isLPFBypass < 0.5f)
+            {
+                if (Theta_r > 0.0)
+                {
                     LowPassR.reset();
                     LowPassR.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
-                    rightChannel[i] = LowPassR.processSample(rightChannel[i]);
+                    float rightFiltered = LowPassR.processSample(rightRotation);
+                    rightOutBlock.setSample(0, i, rightFiltered);
                 }
-                else if (Theta_r < 0.0){
+                else if (Theta_r < 0.0)
+                {
                     LowPassL.reset();
-                    LowPassL.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
-                    leftChannel[i] = LowPassL.processSample(leftChannel[i]);
+                    LowPassL.coefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(_samplerate, _frequency, _Q);
+                    float leftFiltered = LowPassL.processSample(leftRotation);
+                    leftOutBlock.setSample(0, i, leftFiltered);
                 }
             }
+            else
+            {
+                leftOutBlock.setSample(0, i, leftRotation);
+                rightOutBlock.setSample(0, i, rightRotation);
+            }
         }
-
-        /**** Post Gain ****/
-        float valGain = *gain;
-        buffer.applyGain(pow(valGain, 2));
     }
+    else
+    {
+        for (int i = 0; i < inBlock.getNumSamples(); ++i)
+        {
+            double p = valWidth / 100.;
+            auto midInput = (leftInBlock.getSample(0, i) + rightInBlock.getSample(0, i)) / sqrt(2);
+            auto sideInput = (leftInBlock.getSample(0, i) - rightInBlock.getSample(0, i)) / sqrt(2);
+            auto midWidth = midInput;
+            double midDelay = history[pos];
+            double midDelay2 = history2[pos2];
+
+            double leftWidth = (midInput + sideInput) / sqrt(2) + p * midDelay;
+            double rightWidth = (midInput - sideInput) / sqrt(2) + p * midDelay2;
+
+            history[pos] = midWidth;
+            history2[pos2] = midWidth;
+            pos = (pos + 1) % history.size();
+            pos2 = (pos2 + 1) % history2.size();
+
+            double leftRotation = leftWidth * cos(Theta_r) - rightWidth * sin(Theta_r);
+            double rightRotation = leftWidth * sin(Theta_r) + rightWidth * cos(Theta_r);
+
+            if (isLPFBypass < 0.5f)
+            {
+                if (Theta_r > 0.0) 
+                {
+                    LowPassR.reset();
+                    LowPassR.coefficients = juce::dsp::IIR::Coefficients<double>::makeLowPass(_samplerate, _frequency, _Q);
+                    float rightFiltered = LowPassR.processSample(rightRotation);
+                    rightOutBlock.setSample(0, i, rightFiltered);
+                }
+                else if (Theta_r < 0.0) 
+                {
+                    LowPassL.reset();
+                    LowPassL.coefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(_samplerate, _frequency, _Q);
+                    float leftFiltered = LowPassL.processSample(leftRotation);
+                    leftOutBlock.setSample(0, i, leftFiltered);
+                }
+            }
+            else
+            {
+                leftOutBlock.setSample(0, i, leftRotation);
+                rightOutBlock.setSample(0, i, rightRotation);
+            }
+        }
+    }
+    postGainProcessor.setGainDecibels(valPostGain);
+    postGainProcessor.process(oversampledContext);
+
+    oversamplingProcessorDouble.processSamplesDown(outBlock);
 }
 
 bool StereoPanAudioProcessor::supportsDoublePrecisionProcessing() const

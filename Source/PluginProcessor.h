@@ -64,16 +64,24 @@ private:
     std::atomic<float>* masterBypass = nullptr;
     std::atomic<float>* gain = nullptr;
     std::atomic<float>* width = nullptr;
+    std::atomic<float>* widthAlgos = nullptr;
     std::atomic<float>* widthBypass = nullptr;
     std::atomic<float>* rotation = nullptr;
     std::atomic<float>* rotationBypass = nullptr;
     std::atomic<float>* lpfLink = nullptr;
     std::atomic<float>* lpfFreq = nullptr;
 
+    std::vector<double> history;
+    std::vector<double> history2;
+    int pos = 0;
+    int pos2 = 0;
+
     juce::dsp::IIR::Filter<double> LowPassL, LowPassR;
 
-    template<class sampleType>
-    void processBlockWrapper(juce::AudioBuffer<sampleType>& buffer, juce::MidiBuffer& midiMessages);
+    juce::dsp::Oversampling<float> oversamplingProcessorFloat{ 2, 1, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, true };
+    juce::dsp::Oversampling<double> oversamplingProcessorDouble{ 2, 1, juce::dsp::Oversampling<double>::filterHalfBandPolyphaseIIR, true, true };
+
+    juce::dsp::Gain<float> postGainProcessor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoPanAudioProcessor)
 };
